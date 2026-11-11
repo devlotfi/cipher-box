@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.data.settings
+package com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings
 
 import androidx.room3.Dao
 import androidx.room3.Insert

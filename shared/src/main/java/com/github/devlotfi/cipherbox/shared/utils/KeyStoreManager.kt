@@ -2,6 +2,7 @@ package com.github.devlotfi.cipherbox.shared.utils
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import kotlinx.serialization.Serializable
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -46,6 +47,11 @@ class KeyStoreManager(
       )
       .setRandomizedEncryptionRequired(true)
       .setUserAuthenticationRequired(true)
+      .setUserAuthenticationParameters(
+        0,
+        KeyProperties.AUTH_BIOMETRIC_STRONG or
+          KeyProperties.AUTH_DEVICE_CREDENTIAL
+      )
       .build()
 
     keyGenerator.init(spec)
@@ -61,33 +67,57 @@ class KeyStoreManager(
     getKeyStore().deleteEntry(keyAlias)
   }
 
-  data class EncryptedData(
+  @Serializable
+  data class AesGcmEncryptedData(
     val iv: String,
     val ciphertext: String
   )
 
-  fun encrypt(data: String): EncryptedData {
-    val key = getOrCreateKey()
+  fun createEncryptionCipher(): Cipher {
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-    cipher.init(Cipher.ENCRYPT_MODE, key)
-    val ciphertext = cipher.doFinal(data.toByteArray(Charsets.UTF_8))
-    return EncryptedData(
+
+    cipher.init(
+      Cipher.ENCRYPT_MODE,
+      getOrCreateKey()
+    )
+
+    return cipher
+  }
+
+  fun createDecryptionCipher(
+    encrypted: AesGcmEncryptedData
+  ): Cipher {
+    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+
+    cipher.init(
+      Cipher.DECRYPT_MODE,
+      getOrCreateKey(),
+      GCMParameterSpec(128, Base64.decode(encrypted.iv))
+    )
+
+    return cipher
+  }
+
+  fun encrypt(
+    data: String,
+    cipher: Cipher
+  ): AesGcmEncryptedData {
+    val ciphertext = cipher.doFinal(
+      data.toByteArray(Charsets.UTF_8)
+    )
+    return AesGcmEncryptedData(
       iv = Base64.encode(cipher.iv),
       ciphertext = Base64.encode(ciphertext)
     )
   }
 
-  fun decrypt(ciphertext: String, iv: String): String {
-    val iv = Base64.decode(iv)
-    val ciphertext = Base64.decode(ciphertext)
-    val key = getOrCreateKey()
-    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-    cipher.init(
-      Cipher.DECRYPT_MODE,
-      key,
-      GCMParameterSpec(128, iv)
-    )
+  fun decrypt(
+    encrypted: AesGcmEncryptedData,
+    cipher: Cipher
+  ): String {
+    val ciphertext = Base64.decode(encrypted.ciphertext)
     val decrypted = cipher.doFinal(ciphertext)
+
     return String(decrypted, Charsets.UTF_8)
   }
 }

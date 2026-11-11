@@ -13,11 +13,15 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
+import com.github.devlotfi.cipherbox.gateway.screens.ConfirmDuressPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.ConfirmPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.DashboardScreen
+import com.github.devlotfi.cipherbox.gateway.screens.DeviceNotSecureScreen
 import com.github.devlotfi.cipherbox.gateway.screens.InitScreen
 import com.github.devlotfi.cipherbox.gateway.screens.PinScreen
+import com.github.devlotfi.cipherbox.gateway.screens.SetDuressPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.SetPinScreen
+import com.github.devlotfi.cipherbox.gateway.screens.WelcomeScreen
 
 @Composable
 fun Main(modifier: Modifier = Modifier) {
@@ -40,6 +44,14 @@ fun Main(modifier: Modifier = Modifier) {
             InitScreen(modifier = Modifier.weight(1f))
           }
 
+          is Navigation.DeviceNotSecure -> NavEntry(key) {
+            DeviceNotSecureScreen(modifier = Modifier.weight(1f))
+          }
+
+          is Navigation.Welcome -> NavEntry(key) {
+            WelcomeScreen(modifier = Modifier.weight(1f))
+          }
+
           is Navigation.Pin -> NavEntry(key) {
             PinScreen(modifier = Modifier.weight(1f))
           }
@@ -50,6 +62,18 @@ fun Main(modifier: Modifier = Modifier) {
 
           is Navigation.ConfirmPin -> NavEntry(key) {
             ConfirmPinScreen(modifier = Modifier.weight(1f), pin = key.pin)
+          }
+
+          is Navigation.SetDuressPin -> NavEntry(key) {
+            SetDuressPinScreen(modifier = Modifier.weight(1f), pin = key.pin)
+          }
+
+          is Navigation.ConfirmDuressPin -> NavEntry(key) {
+            ConfirmDuressPinScreen(
+              modifier = Modifier.weight(1f),
+              pin = key.pin,
+              duressPin = key.duressPin
+            )
           }
 
           is Navigation.Dashboard -> NavEntry(key) {

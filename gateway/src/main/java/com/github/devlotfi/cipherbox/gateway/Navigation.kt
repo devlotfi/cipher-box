@@ -8,6 +8,12 @@ sealed interface Navigation {
   data object Init : NavKey
 
   @Serializable
+  data object DeviceNotSecure : NavKey
+
+  @Serializable
+  data object Welcome : NavKey
+
+  @Serializable
   data object Pin : NavKey
 
   @Serializable
@@ -15,6 +21,12 @@ sealed interface Navigation {
 
   @Serializable
   data class ConfirmPin(val pin: String) : NavKey
+
+  @Serializable
+  data class SetDuressPin(val pin: String) : NavKey
+
+  @Serializable
+  data class ConfirmDuressPin(val pin: String, val duressPin: String) : NavKey
 
   @Serializable
   data object Dashboard : NavKey

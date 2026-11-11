@@ -50,7 +50,9 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
   implementation(libs.androidx.material3.adaptive.navigation3)
   implementation(libs.kotlinx.serialization.core)
+  implementation(libs.kotlinx.serialization.json)
   implementation(libs.androidx.core.splashscreen)
+  implementation(libs.androidx.biometric)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
 

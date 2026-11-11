@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -133,7 +132,6 @@ fun Numpad(
                         )
                       },
                       onClick = onBackspaceClick,
-                      color = MaterialTheme.colorScheme.surfaceContainerLow
                     )
                   }
 
@@ -148,14 +146,6 @@ fun Numpad(
                         )
                       },
                       onClick = { onNumberClick(number) },
-                      color = if (
-                        rowIndex == 0 && colIndex == 1 ||
-                        rowIndex == 1 && colIndex == 0 ||
-                        rowIndex == 1 && colIndex == 2 ||
-                        rowIndex == 2 && colIndex == 1
-                      )
-                        MaterialTheme.colorScheme.surfaceContainerLow
-                      else null
                     )
                   }
                 }
@@ -173,7 +163,6 @@ fun Numpad(
 @Composable
 private fun NumpadButton(
   modifier: Modifier = Modifier,
-  color: Color? = null,
   content: @Composable () -> Unit,
   onClick: () -> Unit,
   enabled: Boolean = false
@@ -184,7 +173,7 @@ private fun NumpadButton(
       .fillMaxWidth()
       .aspectRatio(1f),
     shape = RoundedCornerShape(35.dp),
-    color = color ?: MaterialTheme.colorScheme.surfaceContainerHigh,
+    color = MaterialTheme.colorScheme.surfaceContainerHigh,
     enabled = enabled,
   ) {
     Box(

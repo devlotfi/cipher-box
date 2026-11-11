@@ -62,8 +62,9 @@ fun DashboardScreen(
     modifier = modifier,
     topBar = {
       TopAppBar(
+        modifier = Modifier.clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)),
         colors = TopAppBarDefaults.topAppBarColors(
-          containerColor = MaterialTheme.colorScheme.background,
+          containerColor = MaterialTheme.colorScheme.surfaceContainer,
           titleContentColor = MaterialTheme.colorScheme.onBackground,
         ),
         title = {
@@ -72,12 +73,12 @@ fun DashboardScreen(
           ) {
             Image(
               painter = painterResource(SharedR.drawable.cipher_box_gateway_logo),
-              contentDescription = "lol",
-              modifier = Modifier.size(35.dp)
+              contentDescription = "logo",
+              modifier = Modifier.size(40.dp)
             )
             Spacer(modifier = Modifier.width(15.dp))
             Text(
-              stringResource(R.string.app_name),
+              stringResource(SharedR.string.app_name),
               fontSize = 22.sp,
               fontWeight = FontWeight.Black
             )
