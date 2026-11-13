@@ -3,7 +3,7 @@ package com.github.devlotfi.cipherbox.gateway
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
-sealed interface Navigation {
+sealed interface NavigationKeys {
   @Serializable
   data object Init : NavKey
 

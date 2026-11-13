@@ -1,6 +1,5 @@
 package com.github.devlotfi.cipherbox.gateway.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.devlotfi.cipherbox.gateway.Navigation
+import com.github.devlotfi.cipherbox.gateway.NavigationKeys
 import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
@@ -70,13 +70,14 @@ fun WelcomeScreen(
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.Center
         ) {
-          Image(
+          Icon(
             painter = painterResource(SharedR.drawable.cipher_box_gateway_logo),
             contentDescription = null,
-            modifier = Modifier.size(150.dp)
+            modifier = Modifier.size(150.dp),
+            tint = MaterialTheme.colorScheme.onBackground
           )
 
-          Spacer(modifier = Modifier.height(30.dp))
+          Spacer(modifier = Modifier.height(50.dp))
 
           Text(
             "Welcome to cipher box gateway",
@@ -102,7 +103,7 @@ fun WelcomeScreen(
           modifier = Modifier.fillMaxWidth(),
           onClick = {
             localNavigation.backStack.clear()
-            localNavigation.backStack.add(Navigation.SetPin)
+            localNavigation.backStack.add(NavigationKeys.SetPin)
           },
           shape = RoundedCornerShape(10.dp)
         ) {

@@ -21,7 +21,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.Navigation
+import com.github.devlotfi.cipherbox.gateway.NavigationKeys
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
 import com.github.devlotfi.cipherbox.gateway.providers.LocalKeystore
@@ -80,7 +80,7 @@ fun PinScreen(
     onSuccess {
       println("SqlCipher init success")
       localNavigation.backStack.clear()
-      localNavigation.backStack.add(Navigation.Dashboard)
+      localNavigation.backStack.add(NavigationKeys.Dashboard)
     }
     onError {
       it.printStackTrace()

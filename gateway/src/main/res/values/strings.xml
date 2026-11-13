@@ -1,6 +1,7 @@
 <resources>
-  <string name="app_name">Cipher Box Gateway</string>
+  <string name="app_name">Cipher Box</string>
   <string name="no_content">No content</string>
   <string name="info">Info</string>
+  <string name="dashboard">Dashboard</string>
   <string name="settings">Settings</string>
 </resources>

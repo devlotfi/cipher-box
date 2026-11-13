@@ -21,7 +21,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.Navigation
+import com.github.devlotfi.cipherbox.gateway.NavigationKeys
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.AppDataEntity
 import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.LoginData
@@ -80,7 +80,7 @@ fun ConfirmDuressPinScreen(
     onSuccess {
       println("Save key gen success")
       localNavigation.backStack.clear()
-      localNavigation.backStack.add(Navigation.Pin)
+      localNavigation.backStack.add(NavigationKeys.Pin)
     }
     onError = {
       it.printStackTrace()
@@ -92,6 +92,7 @@ fun ConfirmDuressPinScreen(
     mutateKey = listOf("KEY_GEN")
     mutateFn { params: Unit ->
       val sqlCipherPassword = AESGCMUtils.generateKey()
+      println("password: ${sqlCipherPassword}")
 
       localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.delete(context)
       localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.init(context, sqlCipherPassword)

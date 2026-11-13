@@ -17,24 +17,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.Navigation
+import com.github.devlotfi.cipherbox.gateway.NavigationKeys
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.composevstore.DataStore
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
-class SetDuressPinScreenViewModel : ViewModel() {
+class SetPinScreenViewModel : ViewModel() {
   val dataStore = DataStore()
   var error by mutableStateOf<String?>(null)
   var loading by mutableStateOf(false)
 }
 
 @Composable
-fun SetDuressPinScreen(
-  pin: String,
+fun SetPinScreen(
   modifier: Modifier = Modifier,
-  viewModel: SetDuressPinScreenViewModel = viewModel(),
+  viewModel: SetPinScreenViewModel = viewModel(),
 ) {
   val localNavigation = LocalNavigation.current
 
@@ -43,36 +42,31 @@ fun SetDuressPinScreen(
     dataStore = viewModel.dataStore,
     logo = SharedR.drawable.cipher_box_gateway_logo,
     appName = stringResource(R.string.app_name),
-    title = "Set a duress pin",
-    subTitle = "The pin used wipe app data in case of emergency",
-    error = viewModel.error,
+    title = "Set a PIN",
+    subTitle = "The pin used to unlock the app",
     titleIcon = {
       Box(
         modifier = Modifier
           .size(40.dp)
           .clip(RoundedCornerShape(10.dp))
-          .background(MaterialTheme.colorScheme.error),
+          .background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
       ) {
         Icon(
-          com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever,
+          com.github.devlotfi.cipherbox.shared.icons.outlined.lock,
           contentDescription = null,
           modifier = Modifier.size(30.dp),
-          tint = MaterialTheme.colorScheme.onError
+          tint = MaterialTheme.colorScheme.onPrimary
         )
       }
     },
+    error = viewModel.error,
     clearError = {
       viewModel.error = null
     },
     loading = viewModel.loading,
     onPin = {
-      localNavigation.backStack.add(
-        Navigation.ConfirmDuressPin(
-          pin = pin,
-          duressPin = it
-        )
-      )
+      localNavigation.backStack.add(NavigationKeys.ConfirmPin(it))
     }
   )
 }

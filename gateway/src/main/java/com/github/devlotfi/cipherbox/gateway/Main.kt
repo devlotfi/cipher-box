@@ -40,35 +40,35 @@ fun Main(modifier: Modifier = Modifier) {
       ),
       entryProvider = { key ->
         when (key) {
-          is Navigation.Init -> NavEntry(key) {
+          is NavigationKeys.Init -> NavEntry(key) {
             InitScreen(modifier = Modifier.weight(1f))
           }
 
-          is Navigation.DeviceNotSecure -> NavEntry(key) {
+          is NavigationKeys.DeviceNotSecure -> NavEntry(key) {
             DeviceNotSecureScreen(modifier = Modifier.weight(1f))
           }
 
-          is Navigation.Welcome -> NavEntry(key) {
+          is NavigationKeys.Welcome -> NavEntry(key) {
             WelcomeScreen(modifier = Modifier.weight(1f))
           }
 
-          is Navigation.Pin -> NavEntry(key) {
+          is NavigationKeys.Pin -> NavEntry(key) {
             PinScreen(modifier = Modifier.weight(1f))
           }
 
-          is Navigation.SetPin -> NavEntry(key) {
+          is NavigationKeys.SetPin -> NavEntry(key) {
             SetPinScreen(modifier = Modifier.weight(1f))
           }
 
-          is Navigation.ConfirmPin -> NavEntry(key) {
+          is NavigationKeys.ConfirmPin -> NavEntry(key) {
             ConfirmPinScreen(modifier = Modifier.weight(1f), pin = key.pin)
           }
 
-          is Navigation.SetDuressPin -> NavEntry(key) {
+          is NavigationKeys.SetDuressPin -> NavEntry(key) {
             SetDuressPinScreen(modifier = Modifier.weight(1f), pin = key.pin)
           }
 
-          is Navigation.ConfirmDuressPin -> NavEntry(key) {
+          is NavigationKeys.ConfirmDuressPin -> NavEntry(key) {
             ConfirmDuressPinScreen(
               modifier = Modifier.weight(1f),
               pin = key.pin,
@@ -76,7 +76,7 @@ fun Main(modifier: Modifier = Modifier) {
             )
           }
 
-          is Navigation.Dashboard -> NavEntry(key) {
+          is NavigationKeys.Dashboard -> NavEntry(key) {
             DashboardScreen(modifier = Modifier.weight(1f))
           }
 
