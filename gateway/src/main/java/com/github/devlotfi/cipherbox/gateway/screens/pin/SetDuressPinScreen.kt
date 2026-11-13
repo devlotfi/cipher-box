@@ -17,9 +17,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.NavigationKeys
+import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.R
-import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
+import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.composevstore.DataStore
 import com.github.devlotfi.cipherbox.shared.R as SharedR
@@ -68,7 +68,7 @@ fun SetDuressPinScreen(
     loading = viewModel.loading,
     onPin = {
       localNavigation.backStack.add(
-        NavigationKeys.ConfirmDuressPin(
+        ScreenNavigationKeys.ConfirmDuressPin(
           pin = pin,
           duressPin = it
         )

@@ -20,11 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.NavigationKeys
+import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.R
+import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
 import com.github.devlotfi.cipherbox.gateway.providers.LocalKeystore
-import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreAuthenticator
@@ -84,7 +84,7 @@ fun ConfirmPinScreen(
       if (it != pin) {
         viewModel.error = "Pins dont match"
       } else {
-        localNavigation.backStack.add(NavigationKeys.SetDuressPin(pin = pin))
+        localNavigation.backStack.add(ScreenNavigationKeys.SetDuressPin(pin = pin))
       }
     }
   )

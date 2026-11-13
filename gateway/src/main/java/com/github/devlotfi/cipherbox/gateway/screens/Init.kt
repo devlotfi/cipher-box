@@ -10,10 +10,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.github.devlotfi.cipherbox.gateway.NavigationKeys
+import com.github.devlotfi.cipherbox.gateway.LocalNavigation
+import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
 import com.github.devlotfi.cipherbox.gateway.providers.LocalGlobalViewModel
-import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.composequery.rememberQuery
@@ -34,7 +34,7 @@ fun InitScreen(
     queryKey = listOf("INIT")
     queryFn {
       if (!keyguardManager.isDeviceSecure) {
-        localNavigation.backStack.add(NavigationKeys.DeviceNotSecure)
+        localNavigation.backStack.add(ScreenNavigationKeys.DeviceNotSecure)
         return@queryFn
       }
 
@@ -45,15 +45,15 @@ fun InitScreen(
           localAppDatabase.appDatabaseManager.init(context)
           localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.init(
             context,
-            "Q/vbnT5KUQ05I9W10KDdYvBUDef9iNSmRWa+SiQAhvA="
+            "u37M65vvxCNc6E74CBC34akV7hq8Kzg7mBGH7OOONgw="
           )
-          localNavigation.backStack.add(NavigationKeys.Dashboard)
+          localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
           return@queryFn
         }
 
-        localNavigation.backStack.add(NavigationKeys.Pin)
+        localNavigation.backStack.add(ScreenNavigationKeys.Pin)
       } else {
-        localNavigation.backStack.add(NavigationKeys.Welcome)
+        localNavigation.backStack.add(ScreenNavigationKeys.Welcome)
       }
     }
   }

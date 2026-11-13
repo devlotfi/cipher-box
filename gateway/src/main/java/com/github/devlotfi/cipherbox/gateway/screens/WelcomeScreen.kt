@@ -27,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.devlotfi.cipherbox.gateway.NavigationKeys
-import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
+import com.github.devlotfi.cipherbox.gateway.LocalNavigation
+import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 @Composable
@@ -103,7 +103,7 @@ fun WelcomeScreen(
           modifier = Modifier.fillMaxWidth(),
           onClick = {
             localNavigation.backStack.clear()
-            localNavigation.backStack.add(NavigationKeys.SetPin)
+            localNavigation.backStack.add(ScreenNavigationKeys.SetPin)
           },
           shape = RoundedCornerShape(10.dp)
         ) {

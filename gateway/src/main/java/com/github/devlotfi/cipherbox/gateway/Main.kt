@@ -5,101 +5,150 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.github.devlotfi.cipherbox.gateway.providers.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.screens.ConfirmDuressPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.ConfirmPinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.DashboardScreen
 import com.github.devlotfi.cipherbox.gateway.screens.DeviceNotSecureScreen
 import com.github.devlotfi.cipherbox.gateway.screens.InitScreen
 import com.github.devlotfi.cipherbox.gateway.screens.PinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.SetDuressPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.SetPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.WelcomeScreen
+import com.github.devlotfi.cipherbox.gateway.screens.dashboard.DashboardScreen
+import kotlinx.serialization.Serializable
+
+sealed interface ScreenNavigationKeys {
+  @Serializable
+  data object Init : NavKey
+
+  @Serializable
+  data object DeviceNotSecure : NavKey
+
+  @Serializable
+  data object Welcome : NavKey
+
+  @Serializable
+  data object Pin : NavKey
+
+  @Serializable
+  data object SetPin : NavKey
+
+  @Serializable
+  data class ConfirmPin(val pin: String) : NavKey
+
+  @Serializable
+  data class SetDuressPin(val pin: String) : NavKey
+
+  @Serializable
+  data class ConfirmDuressPin(val pin: String, val duressPin: String) : NavKey
+
+  @Serializable
+  data object Dashboard : NavKey
+}
+
+data class LocalScreenNavigationData(
+  val backStack: NavBackStack<NavKey>
+)
+
+val LocalNavigation = compositionLocalOf<LocalScreenNavigationData> { error("Not init") }
+
 
 @Composable
 fun Main(modifier: Modifier = Modifier) {
-  val localNavigation = LocalNavigation.current
+  val backStack = rememberNavBackStack(ScreenNavigationKeys.Init)
 
   Column(
-    modifier = modifier
-      .fillMaxSize(),
+    modifier = modifier.fillMaxSize()
   ) {
-    NavDisplay(
-      backStack = localNavigation.backStack,
-      onBack = { localNavigation.backStack.removeLastOrNull() },
-      entryDecorators = listOf(
-        rememberSaveableStateHolderNavEntryDecorator(),
-        rememberViewModelStoreNavEntryDecorator()
-      ),
-      entryProvider = { key ->
-        when (key) {
-          is NavigationKeys.Init -> NavEntry(key) {
-            InitScreen(modifier = Modifier.weight(1f))
+    CompositionLocalProvider(
+      LocalNavigation provides LocalScreenNavigationData(backStack)
+    ) {
+      NavDisplay(
+        backStack = backStack,
+        onBack = {
+          backStack.removeLastOrNull()
+        },
+        entryDecorators = listOf(
+          rememberSaveableStateHolderNavEntryDecorator(),
+          rememberViewModelStoreNavEntryDecorator()
+        ),
+        entryProvider = entryProvider {
+          entry<ScreenNavigationKeys.Init> {
+            InitScreen()
           }
 
-          is NavigationKeys.DeviceNotSecure -> NavEntry(key) {
-            DeviceNotSecureScreen(modifier = Modifier.weight(1f))
+          entry<ScreenNavigationKeys.DeviceNotSecure> {
+            DeviceNotSecureScreen(
+            )
           }
 
-          is NavigationKeys.Welcome -> NavEntry(key) {
-            WelcomeScreen(modifier = Modifier.weight(1f))
+          entry<ScreenNavigationKeys.Welcome> {
+            WelcomeScreen()
           }
 
-          is NavigationKeys.Pin -> NavEntry(key) {
-            PinScreen(modifier = Modifier.weight(1f))
+          entry<ScreenNavigationKeys.Pin> {
+            PinScreen()
           }
 
-          is NavigationKeys.SetPin -> NavEntry(key) {
-            SetPinScreen(modifier = Modifier.weight(1f))
+          entry<ScreenNavigationKeys.SetPin> {
+            SetPinScreen()
           }
 
-          is NavigationKeys.ConfirmPin -> NavEntry(key) {
-            ConfirmPinScreen(modifier = Modifier.weight(1f), pin = key.pin)
+          entry<ScreenNavigationKeys.ConfirmPin> { key ->
+            ConfirmPinScreen(
+              pin = key.pin
+            )
           }
 
-          is NavigationKeys.SetDuressPin -> NavEntry(key) {
-            SetDuressPinScreen(modifier = Modifier.weight(1f), pin = key.pin)
+          entry<ScreenNavigationKeys.SetDuressPin> { key ->
+            SetDuressPinScreen(
+              pin = key.pin
+            )
           }
 
-          is NavigationKeys.ConfirmDuressPin -> NavEntry(key) {
+          entry<ScreenNavigationKeys.ConfirmDuressPin> { key ->
             ConfirmDuressPinScreen(
-              modifier = Modifier.weight(1f),
               pin = key.pin,
               duressPin = key.duressPin
             )
           }
 
-          is NavigationKeys.Dashboard -> NavEntry(key) {
-            DashboardScreen(modifier = Modifier.weight(1f))
+          entry<ScreenNavigationKeys.Dashboard> {
+            DashboardScreen()
           }
-
-          else -> NavEntry(key) {
-            Text("Unknown")
-          }
+        },
+        transitionSpec = {
+          slideInHorizontally(
+            initialOffsetX = { it }
+          ) togetherWith slideOutHorizontally(
+            targetOffsetX = { -it }
+          )
+        },
+        popTransitionSpec = {
+          slideInHorizontally(
+            initialOffsetX = { -it }
+          ) togetherWith slideOutHorizontally(
+            targetOffsetX = { it }
+          )
+        },
+        predictivePopTransitionSpec = {
+          slideInHorizontally(
+            initialOffsetX = { -it }
+          ) togetherWith slideOutHorizontally(
+            targetOffsetX = { it }
+          )
         }
-      },
-      transitionSpec = {
-        // Slide in from right when navigating forward
-        slideInHorizontally(initialOffsetX = { it }) togetherWith
-          slideOutHorizontally(targetOffsetX = { -it })
-      },
-      popTransitionSpec = {
-        // Slide in from left when navigating back
-        slideInHorizontally(initialOffsetX = { -it }) togetherWith
-          slideOutHorizontally(targetOffsetX = { it })
-      },
-      predictivePopTransitionSpec = {
-        // Slide in from left when navigating back
-        slideInHorizontally(initialOffsetX = { -it }) togetherWith
-          slideOutHorizontally(targetOffsetX = { it })
-      },
-    )
+      )
+    }
   }
 }
