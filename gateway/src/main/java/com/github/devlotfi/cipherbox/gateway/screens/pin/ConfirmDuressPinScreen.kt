@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.screens
+package com.github.devlotfi.cipherbox.gateway.screens.pin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -29,6 +29,7 @@ import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
 import com.github.devlotfi.cipherbox.gateway.providers.LocalKeystore
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
+import com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreAuthenticator
 import com.github.devlotfi.composequery.QueryCache
@@ -160,7 +161,7 @@ fun ConfirmDuressPinScreen(
         contentAlignment = Alignment.Center
       ) {
         Icon(
-          com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever,
+          delete_forever,
           contentDescription = null,
           modifier = Modifier.size(30.dp),
           tint = MaterialTheme.colorScheme.onError

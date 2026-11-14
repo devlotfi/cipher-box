@@ -61,6 +61,14 @@ dependencies {
   implementation(libs.sqlcipher.android)
   implementation(libs.androidx.sqlite)
 
+  implementation(ktorLibs.server.cio)
+  implementation(ktorLibs.server.core)
+  implementation(ktorLibs.server.cors)
+  implementation(ktorLibs.server.contentNegotiation)
+  implementation(ktorLibs.serialization.kotlinx.json)
+  implementation(ktorLibs.server.routingOpenapi)
+  implementation(ktorLibs.server.swagger)
+
   implementation(libs.compose.query)
   implementation(libs.compose.vstore)
   implementation(libs.compose.form)

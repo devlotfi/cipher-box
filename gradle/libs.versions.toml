@@ -9,6 +9,8 @@ coreKtx = "1.19.1"
 coreSplashscreen = "1.2.0"
 graphicsShapes = "1.1.0"
 kanyon = "1.0.1"
+ktorServerCio = "3.6.1"
+ktorServerCore = "3.6.1"
 lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
 kotlin = "2.4.21"
@@ -55,6 +57,8 @@ kanyon = { module = "com.github.devlotfi:kanyon", version.ref = "kanyon" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationCore" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 androidx-material3-adaptive-navigation3 = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "material3AdaptiveNav3" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktorServerCio" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktorServerCore" }
 sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipherAndroid" }
 
 [plugins]

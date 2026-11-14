@@ -22,6 +22,9 @@ dependencyResolutionManagement {
     mavenCentral()
     maven { url = uri("https://www.jitpack.io") }
   }
+  versionCatalogs {
+    create("ktorLibs").from("io.ktor:ktor-version-catalog:3.6.1")
+  }
 }
 
 rootProject.name = "Cipher Box"

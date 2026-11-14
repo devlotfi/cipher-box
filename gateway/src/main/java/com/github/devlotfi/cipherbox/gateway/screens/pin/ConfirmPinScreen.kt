@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.screens
+package com.github.devlotfi.cipherbox.gateway.screens.pin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

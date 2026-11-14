@@ -21,15 +21,15 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.github.devlotfi.cipherbox.gateway.screens.ConfirmDuressPinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.ConfirmPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.DeviceNotSecureScreen
 import com.github.devlotfi.cipherbox.gateway.screens.InitScreen
-import com.github.devlotfi.cipherbox.gateway.screens.PinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.SetDuressPinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.SetPinScreen
 import com.github.devlotfi.cipherbox.gateway.screens.WelcomeScreen
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.DashboardScreen
+import com.github.devlotfi.cipherbox.gateway.screens.pin.ConfirmDuressPinScreen
+import com.github.devlotfi.cipherbox.gateway.screens.pin.ConfirmPinScreen
+import com.github.devlotfi.cipherbox.gateway.screens.pin.PinScreen
+import com.github.devlotfi.cipherbox.gateway.screens.pin.SetDuressPinScreen
+import com.github.devlotfi.cipherbox.gateway.screens.pin.SetPinScreen
 import kotlinx.serialization.Serializable
 
 sealed interface ScreenNavigationKeys {

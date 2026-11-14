@@ -1,5 +1,6 @@
 package com.github.devlotfi.cipherbox.gateway.screens.dashboard
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,7 @@ import com.devlotfi.kanyon.schema.FieldSchema
 import com.devlotfi.kanyon.schema.nullable
 import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
+import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.global.KanyonFormDefinition
 import com.github.devlotfi.cipherbox.shared.global.RegexPresets
@@ -58,11 +61,6 @@ class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {
   init {
     validateOnChange = true
     validateOnBlur = true
-  }
-
-  override fun onSubmit() {
-    println("Valid form")
-    println(this)
   }
 
   val clientMode by formField(settingsEntity.clientMode) {
@@ -92,6 +90,7 @@ fun SettingsScreen(
 ) {
   val scrollState = rememberScrollState()
   val scope = rememberCoroutineScope()
+  val context = LocalContext.current
   val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
   val localSnackbar = LocalSnackbar.current
 
@@ -100,8 +99,11 @@ fun SettingsScreen(
     localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db!!.settingsDao().observe()
       .map { RoomFlowData(loading = false, data = it) }
   }
-  val settingsFlowData by
-  settingsFlow.collectAsStateWithLifecycle(initialValue = RoomFlowData(loading = true))
+  val settingsFlowData by settingsFlow.collectAsStateWithLifecycle(
+    initialValue = RoomFlowData(
+      loading = true
+    )
+  )
 
   var form by viewModel.dataStore.rememberValueInDataStore("SETTINGS_FORM") {
     SettingsForm(settingsFlowData.data ?: SettingsEntity())
@@ -118,6 +120,14 @@ fun SettingsScreen(
           bluetoothClientMac = form.bluetoothClientMac.value
         )
       )
+
+      if (GatewayForegroundService.isRunning) {
+        val intent = Intent(context, GatewayForegroundService::class.java)
+          .setAction(GatewayForegroundService.Actions.RESTART.toString()).apply {
+            putExtra(GatewayForegroundService.Extra.SERVER_PORT, form.serverPort.value.toInt())
+          }
+        context.startService(intent)
+      }
     }
     onSuccess {
       println("Success")
