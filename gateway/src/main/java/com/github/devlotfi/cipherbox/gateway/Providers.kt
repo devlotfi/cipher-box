@@ -6,6 +6,7 @@ import com.github.devlotfi.cipherbox.gateway.providers.AppDatabaseProvider
 import com.github.devlotfi.cipherbox.gateway.providers.GlobalViewModelProvider
 import com.github.devlotfi.cipherbox.gateway.providers.KeyStoreProvider
 import com.github.devlotfi.cipherbox.gateway.providers.SqlCipherAppDatabaseProvider
+import com.github.devlotfi.cipherbox.shared.provider.SnackbarProvider
 
 @Composable
 fun Providers(
@@ -16,7 +17,9 @@ fun Providers(
       KeyStoreProvider {
         AppDatabaseProvider {
           SqlCipherAppDatabaseProvider {
-            content()
+            SnackbarProvider {
+              content()
+            }
           }
         }
       }

@@ -43,9 +43,10 @@ fun InitScreen(
         // for dev only
         if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
           localAppDatabase.appDatabaseManager.init(context)
+          localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.delete(context)
           localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.init(
             context,
-            "u37M65vvxCNc6E74CBC34akV7hq8Kzg7mBGH7OOONgw="
+            "test"
           )
           localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
           return@queryFn

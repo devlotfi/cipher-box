@@ -1,13 +1,17 @@
 package com.github.devlotfi.cipherbox.gateway.screens.dashboard
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
@@ -27,6 +31,7 @@ import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.shared.composables.SimpleTopBar
 import com.github.devlotfi.cipherbox.shared.icons.outlined.info
 import com.github.devlotfi.cipherbox.shared.icons.outlined.settings
+import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
 import kotlinx.serialization.Serializable
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
@@ -65,16 +70,19 @@ enum class DashboardTabData(
   ),
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DashboardScreen(
   modifier: Modifier = Modifier
 ) {
+  val localSnackbar = LocalSnackbar.current
   val backStack = rememberNavBackStack(DashboardNavigationKeys.Info)
   val selectedTab = backStack.lastOrNull() ?: throw Exception("Error")
 
 
   Scaffold(
     modifier = modifier,
+    snackbarHost = { SnackbarHost(localSnackbar.snackbarHostState) },
     topBar = {
       SimpleTopBar(
         appName = stringResource(R.string.app_name),
@@ -82,7 +90,7 @@ fun DashboardScreen(
       )
     },
     bottomBar = {
-      NavigationBar(
+      if (!WindowInsets.isImeVisible) NavigationBar(
         modifier = Modifier.clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
       ) {
         DashboardTabData.entries.forEach { tab ->

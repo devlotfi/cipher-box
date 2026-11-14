@@ -25,7 +25,6 @@ import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.AppDataEntity
-import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.LoginData
 import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
 import com.github.devlotfi.cipherbox.gateway.providers.LocalKeystore
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
@@ -67,12 +66,10 @@ fun ConfirmDuressPinScreen(
 
   val saveKeyGenResultMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("SAVE_KEY_GEN_RESULT")
-    mutateFn { params: LoginData ->
+    mutateFn { params: AppDataEntity ->
       if (localAppDatabase.appDatabaseManager.db == null) throw Exception("Error")
       localAppDatabase.appDatabaseManager.db?.appDataDao()?.save(
-        AppDataEntity(
-          loginData = params
-        )
+        params
       )
       localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.close()
       localAppDatabase.appDatabaseManager.close()
@@ -116,18 +113,18 @@ fun ConfirmDuressPinScreen(
               pinEncryptionResult.ciphertext,
               authenticatedCipher
             )
-            val loginData = LoginData(
+            val appDataEntity = AppDataEntity(
               duressPin = duressPin,
-              aesGcmData = LoginData.AesGcmData(
+              aesGcmData = AppDataEntity.AesGcmData(
                 ciphertext = encrypted.ciphertext,
                 pinIv = pinEncryptionResult.iv,
                 ketStoreIv = encrypted.iv
               ),
-              argon2IdData = LoginData.Argon2IdData(
+              argon2IdData = AppDataEntity.Argon2IdData(
                 salt = salt
               )
             )
-            saveKeyGenResultMutation.mutate(loginData)
+            saveKeyGenResultMutation.mutate(appDataEntity)
           } catch (e: Exception) {
             e.printStackTrace()
             viewModel.error = "An error occured"

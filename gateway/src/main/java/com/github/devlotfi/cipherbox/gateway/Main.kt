@@ -3,12 +3,17 @@ package com.github.devlotfi.cipherbox.gateway
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -65,10 +70,19 @@ val LocalNavigation = compositionLocalOf<LocalScreenNavigationData> { error("Not
 
 @Composable
 fun Main(modifier: Modifier = Modifier) {
+  val focusManager = LocalFocusManager.current
   val backStack = rememberNavBackStack(ScreenNavigationKeys.Init)
 
   Column(
-    modifier = modifier.fillMaxSize()
+    modifier = modifier
+      .fillMaxSize()
+      .imePadding()
+      .clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null
+      ) {
+        focusManager.clearFocus()
+      },
   ) {
     CompositionLocalProvider(
       LocalNavigation provides LocalScreenNavigationData(backStack)

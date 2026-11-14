@@ -96,7 +96,7 @@ fun PinScreen(
       val appData =
         localAppDatabase.appDatabaseManager.db!!.appDataDao().get() ?: throw Exception("Error")
 
-      if (params.pin == appData.loginData.duressPin) {
+      if (params.pin == appData.duressPin) {
         try {
           localAppDatabase.appDatabaseManager.delete(context)
         } catch (e: Exception) {
@@ -114,13 +114,13 @@ fun PinScreen(
       }
 
       val pinAesKey = withContext(Dispatchers.Default) {
-        val aesKey = ARGON2IDUtils.deriveKey(params.pin, appData.loginData.argon2IdData.salt)
+        val aesKey = ARGON2IDUtils.deriveKey(params.pin, appData.argon2IdData.salt)
         return@withContext aesKey
       }
 
       val encrypted = KeyStoreManager.AesGcmEncryptedData(
-        ciphertext = appData.loginData.aesGcmData.ciphertext,
-        iv = appData.loginData.aesGcmData.ketStoreIv
+        ciphertext = appData.aesGcmData.ciphertext,
+        iv = appData.aesGcmData.ketStoreIv
       )
       val cipher = localKeyStore.sqlCipherDatabaseKey.createDecryptionCipher(encrypted)
       authenticator.authenticate(
@@ -133,7 +133,7 @@ fun PinScreen(
             )
             val sqlCipherPassword = AESGCMUtils.decrypt(
               ciphertext = decryptedKeystore,
-              iv = appData.loginData.aesGcmData.pinIv,
+              iv = appData.aesGcmData.pinIv,
               key = pinAesKey
             )
             initSqlCipherDbMutation.mutate(
