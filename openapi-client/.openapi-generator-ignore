@@ -1,0 +1,11 @@
+build.gradle
+settings.gradle
+gradle/**
+gradlew
+gradlew.bat
+.gitignore
+README.md
+docs/**
+api/**
+.openapi-generator/**
+proguard-rules.pro
