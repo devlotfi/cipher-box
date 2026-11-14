@@ -31,3 +31,4 @@ rootProject.name = "Cipher Box"
 include(":client")
 include(":gateway")
 include(":shared")
+include(":openapi")
