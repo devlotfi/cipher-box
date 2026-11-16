@@ -3,34 +3,6 @@ plugins {
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.jetbrains.kotlin.serialization)
   alias(libs.plugins.ksp)
-  alias(libs.plugins.openapi.generator)
-}
-
-openApiGenerate {
-  generatorName.set("kotlin")
-  library.set("jvm-retrofit2")
-  remoteInputSpec.set(
-    providers.gradleProperty("openApiUrl")
-      .orElse("http://localhost:8080/openapi/documentation.yaml")
-  )
-
-  outputDir.set("$rootDir/openapi-client")
-  packageName.set("com.github.devlotfi.cipherbox.openapi")
-  skipValidateSpec.set(true)
-  //ignoreFileOverride.set("$rootDir/openapi-client/.openapi-generator-ignore")
-
-  generateApiTests.set(false)
-  generateModelTests.set(false)
-  generateApiDocumentation.set(false)
-  generateModelDocumentation.set(false)
-
-  configOptions.set(
-    mapOf(
-      "useCoroutines" to "true",
-      "serializationLibrary" to "kotlinx_serialization",
-      "sourceFolder" to "src/main/java"
-    )
-  )
 }
 
 android {
@@ -97,10 +69,15 @@ dependencies {
   implementation(ktorLibs.server.routingOpenapi)
   implementation(ktorLibs.server.swagger)
 
+  implementation(ktorLibs.client.okhttp)
+  implementation(ktorLibs.client.core)
+  implementation(ktorLibs.client.contentNegotiation)
+
   implementation(libs.compose.query)
   implementation(libs.compose.vstore)
   implementation(libs.compose.form)
   implementation(libs.kanyon)
 
   implementation(project(":shared"))
+  implementation(project(":openapi"))
 }

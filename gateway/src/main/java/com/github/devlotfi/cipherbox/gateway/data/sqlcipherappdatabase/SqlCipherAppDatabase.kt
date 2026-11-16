@@ -8,6 +8,7 @@ import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.
 
 @Database(
   version = 1,
+  exportSchema = false,
   entities = [
     SettingsEntity::class
   ],

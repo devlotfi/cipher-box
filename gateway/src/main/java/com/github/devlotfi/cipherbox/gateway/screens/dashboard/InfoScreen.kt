@@ -14,20 +14,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
+import com.github.devlotfi.cipherbox.openapi.apis.DefaultApi
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
+import com.github.devlotfi.cipherbox.shared.global.JsonInstances
+import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
 import com.github.devlotfi.cipherbox.shared.utils.RoomFlowData
+import io.ktor.client.engine.ProxyBuilder
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
+class InfoScreenViewModel : ViewModel()
 
 @Composable
 fun InfoScreen(
-  modifier: Modifier = Modifier
+  modifier: Modifier = Modifier,
+  viewModel: InfoScreenViewModel = viewModel()
 ) {
   val context = LocalContext.current
   val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
+  val localSnackbar = LocalSnackbar.current
 
   val permissionLauncher = rememberLauncherForActivityResult(
     ActivityResultContracts.RequestPermission()
@@ -85,6 +100,32 @@ fun InfoScreen(
       }
     ) {
       Text("Stop")
+    }
+
+    Button(
+      onClick = {
+        viewModel.viewModelScope.launch {
+          try {
+            val api = DefaultApi(
+              baseUrl = "vslou3wmeykbg7qpvmn3bb3k5b6lrxltauvfgfyev5zrmlcn3mlgxgid.onion",
+              httpClientEngine = OkHttp.create {
+                proxy = ProxyBuilder.socks(host = "127.0.0.1", port = 9050)
+              },
+              httpClientConfig = { config ->
+                config.install(ContentNegotiation) {
+                  json(JsonInstances.jsonInstance)
+                }
+              },
+            )
+            val res = api.listTodos()
+            localSnackbar.snackbarHostState.showSnackbar("${res.body()}")
+          } catch (e: Exception) {
+            e.printStackTrace()
+          }
+        }
+      }
+    ) {
+      Text("Test")
     }
   }
 }

@@ -8,6 +8,7 @@ import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.AppDataEnt
 
 @Database(
   version = 1,
+  exportSchema = false,
   entities = [
     AppDataEntity::class
   ],

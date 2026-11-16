@@ -36,7 +36,6 @@ fun Application.configureRouting() {
     get("/todos") {
       call.respond(todos)
     }.describe {
-      tag("Todos")
       operationId = "listTodos"
       summary = "List all todos"
       description = "Returns every todo currently stored in memory."
@@ -63,7 +62,6 @@ fun Application.configureRouting() {
         call.respond(todo)
       }
     }.describe {
-      tag("Todos")
       operationId = "getTodo"
       summary = "Get a todo by id"
       description = "Returns a single todo, or an error if the id is invalid or unknown."
