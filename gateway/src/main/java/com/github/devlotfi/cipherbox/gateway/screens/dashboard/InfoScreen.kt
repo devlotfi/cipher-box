@@ -31,8 +31,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.devlotfi.cipherbox.gateway.composables.sections.ControlSection
 import com.github.devlotfi.cipherbox.gateway.composables.sections.PermissionSection
 import com.github.devlotfi.cipherbox.gateway.composables.sections.ServerTestSection
-import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
+import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
+import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.global.AppQueryCache
 import com.github.devlotfi.cipherbox.shared.utils.RoomFlowData
@@ -51,12 +51,12 @@ fun InfoScreen(
   viewModel: InfoScreenViewModel = viewModel()
 ) {
   val scrollState = rememberScrollState()
-  val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
+  val localSqlCipherDb = LocalSqlCipherDb.current
 
 
-  if (localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db == null) throw Exception("")
+  if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("")
   val settingsFlow = remember {
-    localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db!!.settingsDao().observe()
+    localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().observe()
       .map { RoomFlowData(loading = false, data = it) }
   }
   val settingsFlowData by settingsFlow.collectAsStateWithLifecycle(

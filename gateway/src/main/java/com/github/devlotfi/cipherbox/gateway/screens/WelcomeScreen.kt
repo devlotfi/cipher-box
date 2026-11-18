@@ -47,7 +47,7 @@ fun WelcomeScreen(
         .background(
           Brush.radialGradient(
             colors = listOf(
-              MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+              Color(0xFF2379EA).copy(alpha = 0.15f),
               Color.Transparent
             ),
             radius = 700f

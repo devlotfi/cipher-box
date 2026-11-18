@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata
+package com.github.devlotfi.cipherbox.shared.data.appdata
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey

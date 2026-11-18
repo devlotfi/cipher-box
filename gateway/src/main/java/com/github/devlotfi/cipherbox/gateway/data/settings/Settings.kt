@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings
+package com.github.devlotfi.cipherbox.gateway.data.settings
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey

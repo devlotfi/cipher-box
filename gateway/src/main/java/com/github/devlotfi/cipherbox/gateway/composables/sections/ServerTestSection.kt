@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.devlotfi.kanyon.schema.FieldSchema
-import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
+import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.InfoScreenViewModel
 import com.github.devlotfi.cipherbox.openapi.apis.DefaultApi
 import com.github.devlotfi.cipherbox.shared.global.JsonInstances

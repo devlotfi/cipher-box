@@ -20,23 +20,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.devlotfi.cipherbox.gateway.LocalNavigation
-import com.github.devlotfi.cipherbox.gateway.providers.LocalGlobalViewModel
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
 
 @Composable
 fun DeviceNotSecureScreen(
   modifier: Modifier = Modifier,
 ) {
-  val context = LocalContext.current
-  val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
-  val localGlobalViewModel = LocalGlobalViewModel.current
-  val localNavigation = LocalNavigation.current
   val scrollState = rememberScrollState()
 
   Scaffold(
@@ -48,7 +40,7 @@ fun DeviceNotSecureScreen(
         .background(
           Brush.radialGradient(
             colors = listOf(
-              MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+              Color(0xFF2379EA).copy(alpha = 0.15f),
               Color.Transparent
             ),
             radius = 700f

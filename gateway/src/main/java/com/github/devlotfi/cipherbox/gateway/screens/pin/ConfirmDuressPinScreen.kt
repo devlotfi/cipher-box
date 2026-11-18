@@ -24,14 +24,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
-import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.AppDataEntity
-import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
-import com.github.devlotfi.cipherbox.gateway.providers.LocalKeystore
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
+import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
+import com.github.devlotfi.cipherbox.shared.data.appdata.AppDataEntity
+import com.github.devlotfi.cipherbox.shared.global.KeyStoreKeyAliases
 import com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever
+import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreAuthenticator
+import com.github.devlotfi.cipherbox.shared.utils.KeyStoreManager
 import com.github.devlotfi.composequery.QueryCache
 import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberMutation
@@ -57,23 +58,21 @@ fun ConfirmDuressPinScreen(
 ) {
   val context = LocalContext.current
   val activity = context as FragmentActivity
-  val localKeyStore = LocalKeystore.current
-  val localAppDatabase = LocalAppDatabase.current
-  val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
+  val localLoginDb = LocalLoginDb.current
+  val localSqlCipherDb = LocalSqlCipherDb.current
   val localNavigation = LocalNavigation.current
-  val authenticator = remember {
-    KeyStoreAuthenticator(activity)
-  }
+  val authenticator = remember { KeyStoreAuthenticator(activity) }
+  val sqlCipherDbKey = remember { KeyStoreManager(KeyStoreKeyAliases.SQLCIPHER_DB_KEY) }
 
   val saveKeyGenResultMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("SAVE_KEY_GEN_RESULT")
     mutateFn { params: AppDataEntity ->
-      if (localAppDatabase.appDatabaseManager.db == null) throw Exception("Error")
-      localAppDatabase.appDatabaseManager.db?.appDataDao()?.save(
+      if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
+      localLoginDb.loginDbManager.db?.appDataDao()?.save(
         params
       )
-      localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.close()
-      localAppDatabase.appDatabaseManager.close()
+      localSqlCipherDb.sqlCipherDbManager.close()
+      localLoginDb.loginDbManager.close()
     }
     onSuccess {
       println("Save key gen success")
@@ -92,10 +91,10 @@ fun ConfirmDuressPinScreen(
       val sqlCipherPassword = AESGCMUtils.generateKey()
       println("password: ${sqlCipherPassword}")
 
-      localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.delete(context)
-      localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.init(context, sqlCipherPassword)
-      localAppDatabase.appDatabaseManager.delete(context)
-      localAppDatabase.appDatabaseManager.init(context)
+      localSqlCipherDb.sqlCipherDbManager.delete(context)
+      localSqlCipherDb.sqlCipherDbManager.init(context, sqlCipherPassword)
+      localLoginDb.loginDbManager.delete(context)
+      localLoginDb.loginDbManager.init(context)
 
       val salt = ARGON2IDUtils.generateSalt()
 
@@ -105,12 +104,12 @@ fun ConfirmDuressPinScreen(
       }
 
       val pinEncryptionResult = AESGCMUtils.encrypt(sqlCipherPassword, pinAesKey)
-      val cipher = localKeyStore.sqlCipherDatabaseKey.createEncryptionCipher()
+      val cipher = sqlCipherDbKey.createEncryptionCipher()
       authenticator.authenticate(
         cipher = cipher,
         onSuccess = { authenticatedCipher ->
           try {
-            val encrypted = localKeyStore.sqlCipherDatabaseKey.encrypt(
+            val encrypted = sqlCipherDbKey.encrypt(
               pinEncryptionResult.ciphertext,
               authenticatedCipher
             )

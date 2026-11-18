@@ -1,10 +1,10 @@
-package com.github.devlotfi.cipherbox.gateway.data.appdatabase
+package com.github.devlotfi.cipherbox.shared.data
 
 import androidx.room3.ColumnTypeConverter
-import com.github.devlotfi.cipherbox.gateway.data.appdatabase.appdata.AppDataEntity
+import com.github.devlotfi.cipherbox.shared.data.appdata.AppDataEntity
 import com.github.devlotfi.cipherbox.shared.global.JsonInstances
 
-class AppDatabaseConverters {
+class LoginDbConverters {
   @ColumnTypeConverter
   fun fromAesGcmData(value: AppDataEntity.AesGcmData): String =
     JsonInstances.jsonInstance.encodeToString(value)

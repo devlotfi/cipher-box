@@ -15,7 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.devlotfi.cipherbox.gateway.composables.ActionButton
 import com.github.devlotfi.cipherbox.gateway.composables.CardStatus
 import com.github.devlotfi.cipherbox.gateway.composables.StatusCard
-import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
+import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.InfoScreenViewModel
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 

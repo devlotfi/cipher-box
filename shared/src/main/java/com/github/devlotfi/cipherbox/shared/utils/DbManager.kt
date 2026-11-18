@@ -10,7 +10,7 @@ import androidx.room3.useReaderConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import kotlin.reflect.KClass
 
-class DatabaseManager<T : RoomDatabase>(
+class DbManager<T : RoomDatabase>(
   private val databaseClass: KClass<T>,
   private val databaseName: String
 ) {

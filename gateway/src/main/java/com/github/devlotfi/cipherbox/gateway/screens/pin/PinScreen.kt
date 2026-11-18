@@ -24,10 +24,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
-import com.github.devlotfi.cipherbox.gateway.providers.LocalAppDatabase
-import com.github.devlotfi.cipherbox.gateway.providers.LocalKeystore
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
+import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
+import com.github.devlotfi.cipherbox.shared.global.KeyStoreKeyAliases
+import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreAuthenticator
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreManager
@@ -64,18 +64,16 @@ fun PinScreen(
 ) {
   val context = LocalContext.current
   val activity = context as FragmentActivity
-  val localAppDatabase = LocalAppDatabase.current
-  val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
-  val localKeyStore = LocalKeystore.current
+  val localLoginDb = LocalLoginDb.current
+  val localSqlCipherDb = LocalSqlCipherDb.current
   val localNavigation = LocalNavigation.current
-  val authenticator = remember {
-    KeyStoreAuthenticator(activity)
-  }
+  val authenticator = remember { KeyStoreAuthenticator(activity) }
+  val sqlCipherDbKey = remember { KeyStoreManager(KeyStoreKeyAliases.SQLCIPHER_DB_KEY) }
 
   val initSqlCipherDbMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("INIT_SQLCIPHER")
     mutateFn { params: InitSqlCipherDbMutationParams ->
-      localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.init(context, params.password)
+      localSqlCipherDb.sqlCipherDbManager.init(context, params.password)
     }
     onSuccess {
       println("SqlCipher init success")
@@ -91,22 +89,22 @@ fun PinScreen(
   val verifyPinMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("VERIFY_PIN")
     mutateFn { params: VerifyPinMutationParams ->
-      localAppDatabase.appDatabaseManager.init(context)
-      if (localAppDatabase.appDatabaseManager.db == null) throw Exception("Error")
+      localLoginDb.loginDbManager.init(context)
+      if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
       val appData =
-        localAppDatabase.appDatabaseManager.db!!.appDataDao().get() ?: throw Exception("Error")
+        localLoginDb.loginDbManager.db!!.appDataDao().get() ?: throw Exception("Error")
 
       if (params.pin == appData.duressPin) {
         try {
-          localAppDatabase.appDatabaseManager.delete(context)
+          localLoginDb.loginDbManager.delete(context)
         } catch (e: Exception) {
         }
         try {
-          localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.delete(context)
+          localSqlCipherDb.sqlCipherDbManager.delete(context)
         } catch (e: Exception) {
         }
         try {
-          localKeyStore.sqlCipherDatabaseKey.delete()
+          sqlCipherDbKey.delete()
         } catch (e: Exception) {
         }
         delay(2000.milliseconds)
@@ -122,12 +120,12 @@ fun PinScreen(
         ciphertext = appData.aesGcmData.ciphertext,
         iv = appData.aesGcmData.ketStoreIv
       )
-      val cipher = localKeyStore.sqlCipherDatabaseKey.createDecryptionCipher(encrypted)
+      val cipher = sqlCipherDbKey.createDecryptionCipher(encrypted)
       authenticator.authenticate(
         cipher = cipher,
         onSuccess = { authenticatedCipher ->
           try {
-            val decryptedKeystore = localKeyStore.sqlCipherDatabaseKey.decrypt(
+            val decryptedKeystore = sqlCipherDbKey.decrypt(
               encrypted,
               authenticatedCipher
             )

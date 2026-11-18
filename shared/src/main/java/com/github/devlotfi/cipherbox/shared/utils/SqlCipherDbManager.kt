@@ -10,7 +10,7 @@ import androidx.room3.useReaderConnection
 import net.zetetic.database.sqlcipher.driver.SQLCipherDriver
 import kotlin.reflect.KClass
 
-class SqlCipherDatabaseManager<T : RoomDatabase>(
+class SqlCipherDbManager<T : RoomDatabase>(
   private val databaseClass: KClass<T>,
   private val databaseName: String
 ) {

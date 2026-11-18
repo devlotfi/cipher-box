@@ -37,8 +37,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.devlotfi.kanyon.schema.FieldSchema
-import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
+import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
+import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.global.KanyonFormDefinition
@@ -88,12 +88,12 @@ fun SettingsScreen(
   val scrollState = rememberScrollState()
   val scope = rememberCoroutineScope()
   val context = LocalContext.current
-  val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
+  val localSqlCipherDb = LocalSqlCipherDb.current
   val localSnackbar = LocalSnackbar.current
 
-  if (localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db == null) throw Exception("")
+  if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("")
   val settingsFlow = remember {
-    localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db!!.settingsDao().observe()
+    localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().observe()
       .map { RoomFlowData(loading = false, data = it) }
   }
   val settingsFlowData by settingsFlow.collectAsStateWithLifecycle(
@@ -109,7 +109,7 @@ fun SettingsScreen(
   val saveSettingsMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("SAVE_SETTINGS")
     mutateFn { params: Unit ->
-      localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db!!.settingsDao().save(
+      localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
         SettingsEntity(
           serverPort = form.serverPort.value.toInt(),
           torSocksProxyPort = form.torSocksProxyPort.value.toInt(),

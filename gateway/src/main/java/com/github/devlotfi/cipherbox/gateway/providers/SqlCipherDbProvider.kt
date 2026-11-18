@@ -6,33 +6,33 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.data.appdatabase.AppDatabase
-import com.github.devlotfi.cipherbox.shared.utils.DatabaseManager
+import com.github.devlotfi.cipherbox.gateway.data.SqlCipherDb
+import com.github.devlotfi.cipherbox.shared.utils.SqlCipherDbManager
 
-class AppDatabaseViewModel : ViewModel() {
-  val appDatabaseManager = DatabaseManager(
-    databaseClass = AppDatabase::class,
-    databaseName = "app.db"
+class SqlCipherDbProviderViewModel : ViewModel() {
+  val sqlCipherDbManager = SqlCipherDbManager(
+    databaseClass = SqlCipherDb::class,
+    databaseName = "sqlcipher-app.db"
   )
 
   @SuppressLint("EmptySuperCall")
   override fun onCleared() {
-    appDatabaseManager.close()
+    sqlCipherDbManager.close()
     super.onCleared()
   }
 }
 
-val LocalAppDatabase = compositionLocalOf<AppDatabaseViewModel>() {
+val LocalSqlCipherDb = compositionLocalOf<SqlCipherDbProviderViewModel>() {
   error("Not init")
 }
 
 @Composable
-fun AppDatabaseProvider(
-  viewModel: AppDatabaseViewModel = viewModel(),
+fun SqlCipherDbProvider(
+  viewModel: SqlCipherDbProviderViewModel = viewModel(),
   content: @Composable () -> Unit,
 ) {
   return CompositionLocalProvider(
-    LocalAppDatabase provides viewModel
+    LocalSqlCipherDb provides viewModel
   ) {
     content()
   }
