@@ -1,0 +1,51 @@
+.PHONY: unittest check clean_unittest
+
+CPPUTEST_HOME ?= /usr/local
+
+CXXFLAGS += -I$(CPPUTEST_HOME)/include -DCPPUTEST_MEM_LEAK_DETECTION_DISABLED
+
+OBJ_UNIT_TEST = \
+        unittest/helpers/fake_wire.o \
+        unittest/helpers/fake_connection.o \
+        unittest/helpers/fake_endpoint.o \
+        unittest/helpers/tiny_base_helper.o \
+        unittest/helpers/tiny_hdlc_helper.o \
+        unittest/helpers/tiny_light_helper.o \
+        unittest/helpers/tiny_fd_helper.o \
+        unittest/main.o \
+        unittest/tiny_crc_tests.o \
+        unittest/hal_tests.o \
+        unittest/packet_tests.o \
+        unittest/hdlc_tests.o \
+        unittest/light_tests.o \
+        unittest/tiny_fd_abm_tests.o \
+        unittest/tiny_fd_nrm_tests.o \
+        unittest/fd_tests.o \
+        unittest/fd_multidrop_tests.o \
+        unittest/cpp_wrapper_tests.o \
+
+
+unittest: $(OBJ_UNIT_TEST) library
+	$(CXX) $(CPPFLAGS) -o $(BLD)/unit_test $(OBJ_UNIT_TEST) -L$(BLD) -L$(CPPUTEST_HOME)/lib -lm -pthread \
+	    -ltinyprotocol -lCppUTest -lCppUTestExt
+
+check: unittest
+	$(BLD)/unit_test
+
+clean: clean_unittest
+
+clean_unittest:
+	rm -rf $(OBJ_UNIT_TEST) $(OBJ_UNIT_TEST:.o=.gcno) $(OBJ_UNIT_TEST:.o=.gcda) $(OBJ_UNIT_TEST:.o=.*.gcov)
+
+coverage:
+	$(MAKE) ARCH=linux EXTRA_CPPFLAGS="--coverage" check
+	COVERALLS_REPO_TOKEN=4Ia7t9YDo22zQcFEnMYLh1tiWCRlBJlhk coveralls -b . \
+	    --exclude docs --exclude extra --exclude unittest --exclude bld --exclude tools --exclude examples \
+	    --gcov-options '\-lp' --dryrun
+	lcov --base-directory . --directory ./src -c -o lcov.info --rc geninfo_unexecuted_blocks=1 \
+	     --ignore-errors gcov
+	# lcov --remove lcov.info "*unittest*" -o lcov.info # remove output for external libraries
+	lcov --remove lcov.info "/usr/include*" -o lcov.info # remove output for external libraries
+	# --ignore-errors mismatch,negative
+	# -rm -rf test_coverage
+	# genhtml -o test_coverage -t "tinyproto test coverage" --num-spaces 4 lcov.info

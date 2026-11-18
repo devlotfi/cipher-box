@@ -121,7 +121,7 @@ fun SettingsScreen(
         )
       )
 
-      if (GatewayForegroundService.isRunning) {
+      if (GatewayForegroundService.isServerRunning || GatewayForegroundService.isBluetoothConnected) {
         val intent = Intent(context, GatewayForegroundService::class.java)
           .setAction(GatewayForegroundService.Actions.RESTART.toString()).apply {
             putExtra(GatewayForegroundService.Extra.SERVER_PORT, form.serverPort.value.toInt())

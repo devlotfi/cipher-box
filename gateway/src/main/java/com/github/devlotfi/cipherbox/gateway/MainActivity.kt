@@ -7,6 +7,12 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 
 class MainActivity : FragmentActivity() {
+  companion object {
+    init {
+      System.loadLibrary("shared")
+    }
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     installSplashScreen()
     super.onCreate(savedInstanceState)

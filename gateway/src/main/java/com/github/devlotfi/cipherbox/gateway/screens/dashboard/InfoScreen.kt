@@ -44,10 +44,17 @@ fun InfoScreen(
   val localSqlCipherAppDatabase = LocalSqlCipherAppDatabase.current
   val localSnackbar = LocalSnackbar.current
 
+
+  val permissions = remember {
+    arrayOf(
+      Manifest.permission.BLUETOOTH_CONNECT,
+      Manifest.permission.POST_NOTIFICATIONS
+    )
+  }
   val permissionLauncher = rememberLauncherForActivityResult(
-    ActivityResultContracts.RequestPermission()
-  ) {
-    println(it)
+    ActivityResultContracts.RequestMultiplePermissions()
+  ) { result ->
+    println(result)
   }
 
   if (localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db == null) throw Exception("")
@@ -71,10 +78,12 @@ fun InfoScreen(
     modifier = modifier.fillMaxSize()
   ) {
     Text("Info screen")
-    Text("Is running: ${GatewayForegroundService.isRunning}")
+    Text("Is busy: ${GatewayForegroundService.isBusy}")
+    Text("Is running server: ${GatewayForegroundService.isServerRunning}")
+    Text("Is connect bluetooth: ${GatewayForegroundService.isBluetoothConnected}")
     Button(
       onClick = {
-        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        permissionLauncher.launch(permissions)
       }
     ) {
       Text("Request permission")
@@ -85,11 +94,25 @@ fun InfoScreen(
         val intent = Intent(context, GatewayForegroundService::class.java)
           .setAction(GatewayForegroundService.Actions.START.toString()).apply {
             putExtra(GatewayForegroundService.Extra.SERVER_PORT, settings.serverPort)
+            putExtra(GatewayForegroundService.Extra.BLUETOOTH_MAC, "AA:BB:CC:DD:EE:01")
           }
         ContextCompat.startForegroundService(context, intent)
       }
     ) {
       Text("Start")
+    }
+
+    Button(
+      onClick = {
+        val intent = Intent(context, GatewayForegroundService::class.java)
+          .setAction(GatewayForegroundService.Actions.RESTART.toString()).apply {
+            putExtra(GatewayForegroundService.Extra.SERVER_PORT, settings.serverPort)
+            putExtra(GatewayForegroundService.Extra.BLUETOOTH_MAC, "AA:BB:CC:DD:EE:01")
+          }
+        ContextCompat.startForegroundService(context, intent)
+      }
+    ) {
+      Text("Restart")
     }
 
     Button(
@@ -107,7 +130,7 @@ fun InfoScreen(
         viewModel.viewModelScope.launch {
           try {
             val api = DefaultApi(
-              baseUrl = "vslou3wmeykbg7qpvmn3bb3k5b6lrxltauvfgfyev5zrmlcn3mlgxgid.onion",
+              baseUrl = "http://vslou3wmeykbg7qpvmn3bb3k5b6lrxltauvfgfyev5zrmlcn3mlgxgid.onion",
               httpClientEngine = OkHttp.create {
                 proxy = ProxyBuilder.socks(host = "127.0.0.1", port = 9050)
               },

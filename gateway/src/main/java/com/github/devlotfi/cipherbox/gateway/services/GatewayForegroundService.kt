@@ -1,74 +1,117 @@
 package com.github.devlotfi.cipherbox.gateway.services
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import com.github.devlotfi.cipherbox.gateway.ktor.configureServer
+import com.github.devlotfi.cipherbox.shared.transport.SerialTransferLayer
+import com.github.devlotfi.cipherbox.shared.transport.TransportGlobals
 import io.ktor.server.engine.EmbeddedServer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.milliseconds
+import java.util.UUID
+import java.util.concurrent.Executors
+import kotlin.concurrent.thread
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 class GatewayForegroundService : Service() {
-  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-  private val serverLock = Mutex()
-  private var server: EmbeddedServer<*, *>? = null
+
+  private val commands = Executors.newSingleThreadExecutor()
+  private val mainHandler = Handler(Looper.getMainLooper())
+
+  @Volatile
+  private var serverThread: Thread? = null
+
+  @Volatile
+  private var serverRunningFlag = false
+
+  @Volatile
+  private var bluetoothThread: Thread? = null
+
+  @Volatile
+  private var bluetoothRunningFlag = false
+  private var currentPort: Int? = null
+  private var currentMac: String? = null
+
+  private val adapter: BluetoothAdapter? by lazy {
+    getSystemService(BluetoothManager::class.java)?.adapter
+  }
+
+  @Volatile
+  private var socket: BluetoothSocket? = null
+
+  @Volatile
+  private var proto: SerialTransferLayer? = null
 
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    when (intent?.action) {
-      Actions.START.toString() -> {
-        val serverPort = intent.getIntExtra(Extra.SERVER_PORT, 8080)
+    if (intent == null) return START_NOT_STICKY
 
+    val action = intent.action
+    when (action) {
+      Actions.START.toString() -> {
         enterForeground()
-        scope.launch {
-          serverLock.withLock {
-            startServerLocked(
-              serverPort = serverPort
-            )
-          }
+
+        val port = intent.getIntExtra(Extra.SERVER_PORT, DEFAULT_PORT)
+        val mac = intent.getStringExtra(Extra.BLUETOOTH_MAC) ?: throw Exception("Missing mac")
+
+        runCommand(Busy.STARTING) {
+          if (serverThread?.isAlive != true || currentPort != port) startServer(port)
+          if (bluetoothThread?.isAlive != true || currentMac != mac) startBluetooth(mac)
         }
       }
 
       Actions.RESTART.toString() -> {
-        val serverPort = intent.getIntExtra(Extra.SERVER_PORT, 8080)
-
         enterForeground()
-        scope.launch {
-          serverLock.withLock {
-            stopServerLocked()
-            startServerLocked(serverPort)
+
+        val port = intent.getIntExtra(Extra.SERVER_PORT, DEFAULT_PORT)
+        val mac = intent.getStringExtra(Extra.BLUETOOTH_MAC) ?: throw Exception("Missing mac")
+
+        runCommand(Busy.RESTARTING) {
+          runCommand(Busy.STOPPING) {
+            try {
+              stopServer()
+              stopBluetooth()
+            } catch (e: Exception) {
+            }
+          }
+          runCommand(Busy.STARTING) {
+            if (serverThread?.isAlive != true || currentPort != port) startServer(port)
+            if (bluetoothThread?.isAlive != true || currentMac != mac) startBluetooth(mac)
           }
         }
       }
 
       Actions.STOP.toString() -> {
-        scope.launch {
-          serverLock.withLock { stopServerLocked() }
-          withContext(Dispatchers.Main) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+        runCommand(Busy.STOPPING, releaseWhenDone = false) {
+          try {
+            stopServer()
+            stopBluetooth()
+          } finally {
+            mainHandler.post {
+              stopForeground(STOP_FOREGROUND_REMOVE)
+              stopSelf()
+            }
           }
         }
       }
@@ -76,47 +119,153 @@ class GatewayForegroundService : Service() {
     return START_NOT_STICKY
   }
 
-  private suspend fun startServerLocked(
-    serverPort: Int
-  ) {
-    if (server != null) return
-
-    // Retry a few times: after a restart the OS may take a moment to free the port
-    repeat(START_ATTEMPTS) { attempt ->
+  // Runs a command on the commands thread and keeps a busy token for as long as it takes.
+  // The token is added here, on the calling (main) thread, so the UI sees "busy" immediately,
+  // not only once the commands thread gets around to the command.
+  private fun runCommand(operation: Busy, releaseWhenDone: Boolean = true, block: () -> Unit) {
+    if (busyTokens.contains(operation)) {
+      Log.w(TAG, "Busy ($busyTokens), ignoring $operation")
+      return
+    }
+    busyTokens.add(operation)
+    commands.execute {
       try {
-        server = configureServer(
-          port = serverPort,
-          debug = (applicationContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        ).start(wait = false)
-
-        isRunning = true
-        return
+        block()
       } catch (e: Exception) {
-        Log.e(TAG, "Start attempt ${attempt + 1} failed", e)
-        server = null
-        delay(500.milliseconds)
+        Log.e(TAG, "$operation failed", e)
+      } finally {
+        // finally: the token is released even if the command threw
+        if (releaseWhenDone) busyTokens.remove(operation)
       }
     }
+  }
 
-    // All attempts failed: don't leave a fake "running" service around
-    isRunning = false
-    withContext(Dispatchers.Main) {
-      stopForeground(STOP_FOREGROUND_REMOVE)
-      stopSelf()
+  private fun startServer(port: Int) {
+    stopServer()
+    currentPort = port
+    serverRunningFlag = true
+    val debug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+
+    serverThread = thread(name = "server-loop") {
+      var server: EmbeddedServer<*, *>? = null
+
+      while (serverRunningFlag) {
+        if (server == null) {
+          try {
+            server = configureServer(port = port, debug = debug).start(wait = false)
+            isServerRunning = true
+          } catch (e: Exception) {
+            Log.e(TAG, "Server start failed, retrying", e)
+            Thread.sleep(SERVER_RETRY_DELAY_MS)
+          }
+        }
+
+        Thread.sleep(200)
+      }
+
+      isServerRunning = false
+      try {
+        server?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
+      } catch (e: Exception) {
+        Log.e(TAG, "Error stopping server", e)
+      }
     }
   }
 
-  private fun stopServerLocked() {
-    val current = server ?: return
-    server = null
+  private fun stopServer() {
+    serverRunningFlag = false
+    serverThread?.join()
+    serverThread = null
+  }
+
+  private fun startBluetooth(mac: String) {
+    stopBluetooth()
+    currentMac = mac
+    bluetoothRunningFlag = true
+    bluetoothThread = thread(name = "bluetooth-loop") {
+      while (bluetoothRunningFlag) {
+        if (hasBluetoothPermission() && adapter?.isEnabled == true) {
+          try {
+            connectAndRead(mac)
+          } catch (e: Exception) {
+            Log.w(TAG, "Bluetooth session ended: ${e.message}")
+          }
+        }
+        isBluetoothConnected = false
+
+        Thread.sleep(BLUETOOTH_RETRY_DELAY_MS)
+      }
+    }
+  }
+
+  private fun stopBluetooth() {
+    bluetoothRunningFlag = false
+    closeSocket()
+    bluetoothThread?.join()
+    bluetoothThread = null
+  }
+
+  private fun connectAndRead(mac: String) {
+    val s = adapter!!.getRemoteDevice(mac).createRfcommSocketToServiceRecord(SPP_UUID)
+    socket = s
+
+    if (!bluetoothRunningFlag) {
+      closeSocket()
+      return
+    }
+
+    var layer: SerialTransferLayer? = null
     try {
-      // Blocks until the port is released; we are on Dispatchers.IO so that's fine
-      current.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
-    } catch (e: Exception) {
-      Log.e(TAG, "Error stopping server", e)
+      s.connect()
+
+      layer = SerialTransferLayer(
+        onTransferData = { data ->
+          println(data)
+        },
+        transportWrite = { bytes ->
+          try {
+            s.outputStream.write(bytes)
+            s.outputStream.flush()
+          } catch (_: Exception) {
+          }
+        },
+      )
+      proto = layer
+      isBluetoothConnected = true
+
+      val buf = ByteArray(TransportGlobals.MTU)
+      while (bluetoothRunningFlag) {
+        val n = s.inputStream.read(buf)
+        if (n < 0) break
+        layer.onBytesReceived(buf, n)
+      }
+    } finally {
+      isBluetoothConnected = false
+      proto = null
+      closeSocket()
+      layer?.let { l ->
+        thread(name = "tinyproto-close") {
+          try {
+            l.close()
+          } catch (_: Exception) {
+          }
+        }
+      }
     }
-    isRunning = false
   }
+
+  private fun closeSocket() {
+    try {
+      socket?.close()
+    } catch (_: Exception) {
+    }
+    socket = null
+  }
+
+  private fun hasBluetoothPermission(): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+      ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+      PackageManager.PERMISSION_GRANTED
 
   private fun enterForeground() {
     createNotificationChannel()
@@ -148,35 +297,50 @@ class GatewayForegroundService : Service() {
   }
 
   override fun onDestroy() {
-    isRunning = false
-    val leftover = server
-    server = null
-    if (leftover != null) {
-      Thread {
-        try {
-          leftover.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
-        } catch (e: Exception) {
-          Log.e(TAG, "Error stopping server", e)
-        }
-      }.start()
+    isServerRunning = false
+    isBluetoothConnected = false
+    commands.execute {
+      stopServer()
+      stopBluetooth()
     }
-
-    scope.cancel()
+    commands.shutdown()
+    // The service is gone: nothing can be busy any more. Tokens still held by queued
+    // commands are removed again later, which is a harmless no-op.
+    busyTokens.clear()
     super.onDestroy()
   }
 
   companion object {
     private const val TAG = "GatewayService"
-    private const val START_ATTEMPTS = 3
+    private const val DEFAULT_PORT = 8080
     private const val CHANNEL_ID = "foreground_service_channel"
     private const val NOTIFICATION_ID = 1
+    private const val SERVER_RETRY_DELAY_MS = 1_000L
+    private const val BLUETOOTH_RETRY_DELAY_MS = 3_000L
+    private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
-    var isRunning by mutableStateOf(false)
+    // One token per running or queued command. Empty list = not busy.
+    // A Compose state list, so reading isBusy in a composable recomposes it when tokens change.
+    private val busyTokens = mutableStateListOf<Busy>()
+
+    val isBusy: Boolean get() = busyTokens.isNotEmpty()
+
+    var isServerRunning by mutableStateOf(false)
       private set
+
+    var isBluetoothConnected by mutableStateOf(false)
+      private set
+  }
+
+  enum class Busy {
+    STARTING,
+    RESTARTING,
+    STOPPING
   }
 
   object Extra {
     const val SERVER_PORT = "SERVER_PORT"
+    const val BLUETOOTH_MAC = "BLUETOOTH_MAC"
   }
 
   enum class Actions {

@@ -1,0 +1,65 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.gcov
+*.gcda
+*.gcno
+
+# Profiling
+gmon.out
+
+# Coverage
+lcov.info
+*.info
+
+# Build directories
+build/
+bld/
+
+# Runtime debug/test output
+tiny_fd_*.csv
+failed_log
+
+# Added by cargo
+/target
+Cargo.lock
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db

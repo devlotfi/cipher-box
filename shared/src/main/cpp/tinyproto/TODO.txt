@@ -1,0 +1,4 @@
+ - Remove send_mutex from low level hdlc protocol. This will allow to use hdlc functions from interrupt handlers
+ - Add buffer send operation like write in Linux
+ - Implement MSVC support
+ 
