@@ -88,17 +88,14 @@ class GatewayForegroundService : Service() {
         val mac = intent.getStringExtra(Extra.BLUETOOTH_MAC) ?: throw Exception("Missing mac")
 
         runCommand(Busy.RESTARTING) {
-          runCommand(Busy.STOPPING) {
-            try {
-              stopServer()
-              stopBluetooth()
-            } catch (e: Exception) {
-            }
+          try {
+            stopServer()
+            stopBluetooth()
+          } catch (e: Exception) {
           }
-          runCommand(Busy.STARTING) {
-            if (serverThread?.isAlive != true || currentPort != port) startServer(port)
-            if (bluetoothThread?.isAlive != true || currentMac != mac) startBluetooth(mac)
-          }
+
+          if (serverThread?.isAlive != true || currentPort != port) startServer(port)
+          if (bluetoothThread?.isAlive != true || currentMac != mac) startBluetooth(mac)
         }
       }
 
@@ -123,7 +120,7 @@ class GatewayForegroundService : Service() {
   // The token is added here, on the calling (main) thread, so the UI sees "busy" immediately,
   // not only once the commands thread gets around to the command.
   private fun runCommand(operation: Busy, releaseWhenDone: Boolean = true, block: () -> Unit) {
-    if (busyTokens.contains(operation)) {
+    if (isBusy) {
       Log.w(TAG, "Busy ($busyTokens), ignoring $operation")
       return
     }
@@ -321,7 +318,7 @@ class GatewayForegroundService : Service() {
 
     // One token per running or queued command. Empty list = not busy.
     // A Compose state list, so reading isBusy in a composable recomposes it when tokens change.
-    private val busyTokens = mutableStateListOf<Busy>()
+    val busyTokens = mutableStateListOf<Busy>()
 
     val isBusy: Boolean get() = busyTokens.isNotEmpty()
 

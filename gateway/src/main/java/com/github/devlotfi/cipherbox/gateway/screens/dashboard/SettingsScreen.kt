@@ -1,23 +1,23 @@
 package com.github.devlotfi.cipherbox.gateway.screens.dashboard
 
 import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,16 +26,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.devlotfi.kanyon.schema.FieldSchema
-import com.devlotfi.kanyon.schema.nullable
 import com.github.devlotfi.cipherbox.gateway.data.sqlcipherappdatabase.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherAppDatabase
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
@@ -63,9 +64,6 @@ class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {
     validateOnBlur = true
   }
 
-  val clientMode by formField(settingsEntity.clientMode) {
-    FieldSchema().enumOf<SettingsEntity.ClientMode>().build()
-  }
   val serverPort by formField(settingsEntity.serverPort.toString()) {
     FieldSchema().string()
       .regex(RegexPresets.portRegex, error = "Invalid port")
@@ -76,10 +74,9 @@ class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {
       .regex(RegexPresets.portRegex, error = "Invalid port")
       .notBlank().build()
   }
-  val bluetoothClientMac by formField<String?>(settingsEntity.bluetoothClientMac) {
+  val bluetoothClientMac by formField(settingsEntity.bluetoothClientMac) {
     FieldSchema().string()
-      .mac()
-      .notBlank().nullable().build()
+      .mac().build()
   }
 }
 
@@ -114,7 +111,6 @@ fun SettingsScreen(
     mutateFn { params: Unit ->
       localSqlCipherAppDatabase.sqlCipherAppDatabaseManager.db!!.settingsDao().save(
         SettingsEntity(
-          clientMode = form.clientMode.value,
           serverPort = form.serverPort.value.toInt(),
           torSocksProxyPort = form.torSocksProxyPort.value.toInt(),
           bluetoothClientMac = form.bluetoothClientMac.value
@@ -125,6 +121,7 @@ fun SettingsScreen(
         val intent = Intent(context, GatewayForegroundService::class.java)
           .setAction(GatewayForegroundService.Actions.RESTART.toString()).apply {
             putExtra(GatewayForegroundService.Extra.SERVER_PORT, form.serverPort.value.toInt())
+            putExtra(GatewayForegroundService.Extra.BLUETOOTH_MAC, form.bluetoothClientMac.value)
           }
         context.startService(intent)
       }
@@ -141,7 +138,6 @@ fun SettingsScreen(
 
   LaunchedEffect(settingsFlowData.data) {
     settingsFlowData.data?.let {
-      form.clientMode.value = it.clientMode
       form.serverPort.value = it.serverPort.toString()
       form.torSocksProxyPort.value = it.torSocksProxyPort.toString()
       form.bluetoothClientMac.value = it.bluetoothClientMac
@@ -161,58 +157,28 @@ fun SettingsScreen(
       .padding(horizontal = 10.dp)
       .padding(top = 20.dp, bottom = 50.dp)
   ) {
-
-    OutlinedCard(
-      shape = RoundedCornerShape(20.dp),
-      modifier = modifier.fillMaxWidth()
+    Row(
+      modifier = Modifier.padding(bottom = 20.dp),
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+      verticalAlignment = Alignment.CenterVertically
     ) {
-      Row(
-        Modifier
-          .fillMaxWidth()
-          .height(56.dp)
-          .selectable(
-            selected = (form.clientMode.value == SettingsEntity.ClientMode.SAME_DEVICE),
-            onClick = { form.clientMode.value = SettingsEntity.ClientMode.SAME_DEVICE },
-            role = Role.RadioButton,
+      Box(
+        modifier = Modifier
+          .clip(
+            RoundedCornerShape(10.dp)
           )
-          .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+          .background(MaterialTheme.colorScheme.primary)
+          .padding(3.dp)
       ) {
-        RadioButton(
-          selected = (form.clientMode.value == SettingsEntity.ClientMode.SAME_DEVICE),
-          onClick = null,
-        )
-        Text(
-          text = "Same device",
-          style = MaterialTheme.typography.bodyLarge,
-          modifier = Modifier.padding(start = 16.dp),
+        Icon(
+          imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.settings,
+          contentDescription = null,
+          modifier = Modifier.size(30.dp),
+          tint = MaterialTheme.colorScheme.onPrimary
         )
       }
-
-      Row(
-        Modifier
-          .fillMaxWidth()
-          .height(56.dp)
-          .selectable(
-            selected = (form.clientMode.value == SettingsEntity.ClientMode.BLUETOOTH),
-            onClick = { form.clientMode.value = SettingsEntity.ClientMode.BLUETOOTH },
-            role = Role.RadioButton,
-          )
-          .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        RadioButton(
-          selected = (form.clientMode.value == SettingsEntity.ClientMode.BLUETOOTH),
-          onClick = null,
-        )
-        Text(
-          text = "Bluetooth",
-          style = MaterialTheme.typography.bodyLarge,
-          modifier = Modifier.padding(start = 16.dp),
-        )
-      }
+      Text("Settings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
-    Spacer(modifier = Modifier.height(20.dp))
 
     OutlinedTextField(
       shape = RoundedCornerShape(15.dp),
@@ -242,7 +208,7 @@ fun SettingsScreen(
       supportingText = { if (form.torSocksProxyPort.error != null) Text("${form.torSocksProxyPort.error}") else Unit }
     )
 
-    if (form.clientMode.value == SettingsEntity.ClientMode.BLUETOOTH) OutlinedTextField(
+    OutlinedTextField(
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier.fillMaxWidth(),
       singleLine = true,
@@ -258,12 +224,12 @@ fun SettingsScreen(
       enabled = !saveSettingsMutation.loading,
       modifier = Modifier.fillMaxWidth(),
       onClick = {
-        saveSettingsMutation.mutate(Unit)
+        if (form.validate()) {
+          saveSettingsMutation.mutate(Unit)
+        }
       },
     ) {
       Text("Save", modifier = Modifier.padding(7.dp))
     }
   }
-
-
 }

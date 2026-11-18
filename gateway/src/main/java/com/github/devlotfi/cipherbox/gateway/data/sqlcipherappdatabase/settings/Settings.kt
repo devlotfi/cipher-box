@@ -9,17 +9,11 @@ import kotlinx.serialization.Serializable
 data class SettingsEntity(
   @PrimaryKey
   val rowId: Int = SINGLETON_ID,
-  val clientMode: ClientMode = ClientMode.SAME_DEVICE,
   val serverPort: Int = 8080,
   val torSocksProxyPort: Int = 9050,
-  val bluetoothClientMac: String? = null
+  val bluetoothClientMac: String = "AA:BB:CC:DD:EE:01"
 ) {
   companion object {
     const val SINGLETON_ID = 0
-  }
-
-  enum class ClientMode {
-    SAME_DEVICE,
-    BLUETOOTH
   }
 }
