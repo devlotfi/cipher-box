@@ -149,7 +149,11 @@ class GatewayForegroundService : Service() {
       while (serverRunningFlag) {
         if (server == null) {
           try {
-            server = configureServer(port = port, debug = debug).start(wait = false)
+            server = configureServer(
+              port = port,
+              sendViaBluetooth = ::sendViaBluetooth,
+              debug = debug,
+            ).start(wait = false)
             isServerRunning = true
           } catch (e: Exception) {
             Log.e(TAG, "Server start failed, retrying", e)
@@ -200,6 +204,16 @@ class GatewayForegroundService : Service() {
     closeSocket()
     bluetoothThread?.join()
     bluetoothThread = null
+  }
+
+  private fun sendViaBluetooth(data: String): Boolean {
+    val p = proto ?: return false
+    try {
+      p.send(data)
+      return true
+    } catch (e: Exception) {
+      return false
+    }
   }
 
   private fun connectAndRead(mac: String) {

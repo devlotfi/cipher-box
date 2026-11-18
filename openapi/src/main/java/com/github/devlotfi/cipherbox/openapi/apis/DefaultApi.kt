@@ -23,8 +23,8 @@
 
 package com.github.devlotfi.cipherbox.openapi.apis
 
-import com.github.devlotfi.cipherbox.openapi.models.ErrorResponse
-import com.github.devlotfi.cipherbox.openapi.models.Todo
+import com.github.devlotfi.cipherbox.openapi.models.SendBody
+import com.github.devlotfi.cipherbox.openapi.models.TestResponse
 
 import com.github.devlotfi.cipherbox.openapi.infrastructure.*
 import io.ktor.client.HttpClientConfig
@@ -43,33 +43,32 @@ import io.ktor.http.ParametersBuilder
     ) {
 
         /**
-        * GET /todos/{id}
-        * Get a todo by id
-        * Returns a single todo, or an error if the id is invalid or unknown.
-         * @param id Todo id (integer) 
-         * @return Todo
+        * POST /send
+        * 
+        * 
+         * @param sendBody  
+         * @return TestResponse
         */
             @Suppress("UNCHECKED_CAST")
-        open suspend fun getTodo(id: kotlin.String): HttpResponse<Todo> {
+        open suspend fun send(sendBody: SendBody): HttpResponse<TestResponse> {
 
             val localVariableAuthNames = listOf<String>()
 
-            val localVariableBody = 
-                    io.ktor.client.utils.EmptyContent
+            val localVariableBody = sendBody
 
             val localVariableQuery = mutableMapOf<String, List<String>>()
 
             val localVariableHeaders = mutableMapOf<String, String>()
 
             val localVariableConfig = RequestConfig<kotlin.Any?>(
-            RequestMethod.GET,
-            "/todos/{id}".replace("{" + "id" + "}", "$id"),
+            RequestMethod.POST,
+            "/send",
             query = localVariableQuery,
             headers = localVariableHeaders,
             requiresAuthentication = false,
             )
 
-            return request(
+            return jsonRequest(
             localVariableConfig,
             localVariableBody,
             localVariableAuthNames
@@ -77,13 +76,13 @@ import io.ktor.http.ParametersBuilder
             }
 
         /**
-        * GET /todos
-        * List all todos
-        * Returns every todo currently stored in memory.
-         * @return kotlin.collections.List<Todo>
+        * GET /test
+        * 
+        * 
+         * @return TestResponse
         */
             @Suppress("UNCHECKED_CAST")
-        open suspend fun listTodos(): HttpResponse<kotlin.collections.List<Todo>> {
+        open suspend fun test(): HttpResponse<TestResponse> {
 
             val localVariableAuthNames = listOf<String>()
 
@@ -96,7 +95,7 @@ import io.ktor.http.ParametersBuilder
 
             val localVariableConfig = RequestConfig<kotlin.Any?>(
             RequestMethod.GET,
-            "/todos",
+            "/test",
             query = localVariableQuery,
             headers = localVariableHeaders,
             requiresAuthentication = false,

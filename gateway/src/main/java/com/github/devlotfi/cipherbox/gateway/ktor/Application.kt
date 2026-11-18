@@ -3,8 +3,9 @@ package com.github.devlotfi.cipherbox.gateway.ktor
 import io.ktor.server.application.Application
 
 fun Application.rootModule(
-  debug: Boolean
+  sendViaBluetooth: (String) -> Boolean,
+  debug: Boolean,
 ) {
   configureHttp(debug)
-  configureRouting()
+  configureRouting(sendViaBluetooth)
 }

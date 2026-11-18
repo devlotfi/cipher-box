@@ -29,22 +29,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * @param id
- * @param title
- * @param completed
+ * @param status
  */
 @Serializable
 
-data class Todo (
+data class TestResponse (
 
-    @SerialName(value = "id")
-    val id: kotlin.Int,
-
-    @SerialName(value = "title")
-    val title: kotlin.String,
-
-    @SerialName(value = "completed")
-    val completed: kotlin.Boolean
+    @SerialName(value = "status")
+    val status: kotlin.String? = null
 
 ) {
 

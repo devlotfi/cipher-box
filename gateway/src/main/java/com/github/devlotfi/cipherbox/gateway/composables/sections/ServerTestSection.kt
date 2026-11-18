@@ -62,7 +62,7 @@ fun ServerTestSection(
           }
         },
       )
-      val res = api.listTodos()
+      val res = api.test()
       println(res.body())
     }
     onSuccess {

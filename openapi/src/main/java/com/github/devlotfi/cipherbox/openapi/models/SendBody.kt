@@ -29,14 +29,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * @param message
+ * @param `data`
  */
 @Serializable
 
-data class ErrorResponse (
+data class SendBody (
 
-    @SerialName(value = "message")
-    val message: kotlin.String
+    @SerialName(value = "data")
+    val `data`: kotlin.String
 
 ) {
 
