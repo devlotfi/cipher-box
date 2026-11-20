@@ -1,6 +1,7 @@
 package com.github.devlotfi.cipherbox.gateway
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -17,6 +18,7 @@ class MainActivity : FragmentActivity() {
     installSplashScreen()
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
     setContent {
       Providers {
         Main()

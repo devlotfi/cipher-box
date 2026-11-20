@@ -8,7 +8,9 @@ plugins {
 android {
   namespace = "com.github.devlotfi.cipherbox.gateway"
   compileSdk {
-    version = release(37)
+    version = release(37) {
+      minorApiLevel = 2
+    }
   }
 
   defaultConfig {
@@ -55,6 +57,9 @@ dependencies {
   implementation(libs.androidx.biometric)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
+
+  implementation(libs.tor.android)
+  implementation(libs.hivemq.mqtt.client)
 
   ksp(libs.androidx.room3.compiler)
   implementation(libs.androidx.room3.runtime)

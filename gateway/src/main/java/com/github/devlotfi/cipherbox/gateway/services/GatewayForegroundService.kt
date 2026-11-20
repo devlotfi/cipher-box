@@ -1,16 +1,11 @@
 package com.github.devlotfi.cipherbox.gateway.services
 
-import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
@@ -23,46 +18,80 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import androidx.core.content.ContextCompat
-import com.github.devlotfi.cipherbox.gateway.ktor.configureServer
-import com.github.devlotfi.cipherbox.shared.transport.SerialTransferLayer
-import com.github.devlotfi.cipherbox.shared.transport.TransportGlobals
-import io.ktor.server.engine.EmbeddedServer
-import java.util.UUID
 import java.util.concurrent.Executors
-import kotlin.concurrent.thread
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
+/**
+ * Owns the foreground notification, the command queue and the busy state.
+ * The actual work lives in GatewayServer and GatewayBluetooth.
+ */
 class GatewayForegroundService : Service() {
 
   private val commands = Executors.newSingleThreadExecutor()
   private val mainHandler = Handler(Looper.getMainLooper())
+  private lateinit var tor: GatewayTor
+  private lateinit var bluetooth: GatewayBluetooth
+  private lateinit var server: GatewayServer
+  private lateinit var mqtt: GatewayMqtt
 
-  @Volatile
-  private var serverThread: Thread? = null
+  override fun onCreate() {
+    super.onCreate()
 
-  @Volatile
-  private var serverRunningFlag = false
+    tor = GatewayTor(
+      context = this,
+      loadOnionKey = { null },
+      saveOnionKey = { },
+      onReadyChanged = { isTorReady = it },
+      onOnionAddressChanged = { onionAddress = it; println(it) },
+    )
+    bluetooth = GatewayBluetooth(
+      context = this,
+      onConnectedChanged = { isBluetoothConnected = it },
+    )
+    server = GatewayServer(
+      debug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0,
+      sendViaBluetooth = bluetooth::send,
+      onRunningChanged = { isServerRunning = it },
+    )
+    mqtt = GatewayMqtt(
+      onConnectedChanged = { connected ->
+        isMqttConnected = connected
+      },
+      onMessage = { topic, payload ->
+        Log.d(TAG, "MQTT message received on $topic")
 
-  @Volatile
-  private var bluetoothThread: Thread? = null
-
-  @Volatile
-  private var bluetoothRunningFlag = false
-  private var currentPort: Int? = null
-  private var currentMac: String? = null
-
-  private val adapter: BluetoothAdapter? by lazy {
-    getSystemService(BluetoothManager::class.java)?.adapter
+        // Handle incoming messages here.
+        // Avoid logging payloads if they contain sensitive data.
+      }
+    )
   }
 
-  @Volatile
-  private var socket: BluetoothSocket? = null
-
-  @Volatile
-  private var proto: SerialTransferLayer? = null
-
   override fun onBind(intent: Intent?): IBinder? = null
+
+  data class IntentExtras(
+    val torRc: String?,
+    val serverPort: Int,
+    val bluetoothMac: String,
+    val mqttHost: String,
+    val mqttPort: Int = 8883,
+    val mqttUsername: String? = null,
+    val mqttPassword: String? = null,
+    val mqttTopic: String
+  )
+
+  fun getIntentExtras(intent: Intent): IntentExtras = IntentExtras(
+    torRc = intent.getStringExtra(Extra.TOR_RC.toString()),
+    serverPort = intent.getIntExtra(Extra.SERVER_PORT.toString(), DEFAULT_SERVER_PORT),
+    bluetoothMac = intent.getStringExtra(Extra.BLUETOOTH_MAC.toString())
+      ?: throw Exception("Missing data"),
+    mqttHost = intent.getStringExtra(Extra.MQTT_HOST.toString())
+      ?: throw Exception("Missing data"),
+    mqttPort = intent.getIntExtra(Extra.MQTT_PORT.toString(), DEFAULT_MQTT_PORT),
+    mqttUsername = intent.getStringExtra(Extra.MQTT_USERNAME.toString()),
+    mqttPassword = intent.getStringExtra(Extra.MQTT_PASSWORD.toString()),
+    mqttTopic = intent.getStringExtra(Extra.MQTT_TOPIC.toString())
+      ?: throw Exception("Missing data")
+  )
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     if (intent == null) return START_NOT_STICKY
@@ -72,38 +101,65 @@ class GatewayForegroundService : Service() {
       Actions.START.toString() -> {
         enterForeground()
 
-        val port = intent.getIntExtra(Extra.SERVER_PORT, DEFAULT_PORT)
-        val mac = intent.getStringExtra(Extra.BLUETOOTH_MAC) ?: throw Exception("Missing mac")
+        val intentExtras = getIntentExtras(intent)
 
         runCommand(Busy.STARTING) {
-          if (serverThread?.isAlive != true || currentPort != port) startServer(port)
-          if (bluetoothThread?.isAlive != true || currentMac != mac) startBluetooth(mac)
+          if (!tor.isAlive || tor.currentPort != intentExtras.serverPort || tor.currentTorRc != intentExtras.torRc) tor.start(
+            intentExtras.serverPort,
+            intentExtras.torRc
+          )
+          if (!server.isAlive || server.currentPort != intentExtras.serverPort) server.start(
+            intentExtras.serverPort
+          )
+          if (!bluetooth.isAlive || bluetooth.currentMac != intentExtras.bluetoothMac) bluetooth.start(
+            intentExtras.bluetoothMac
+          )
         }
       }
 
       Actions.RESTART.toString() -> {
         enterForeground()
 
-        val port = intent.getIntExtra(Extra.SERVER_PORT, DEFAULT_PORT)
-        val mac = intent.getStringExtra(Extra.BLUETOOTH_MAC) ?: throw Exception("Missing mac")
+        val intentExtras = getIntentExtras(intent)
+        val mqttConfig = GatewayMqtt.Config(
+          host = intentExtras.mqttHost,
+          port = intentExtras.mqttPort,
+          username = intentExtras.mqttUsername,
+          password = intentExtras.mqttPassword,
+          topic = intentExtras.mqttTopic
+        )
 
         runCommand(Busy.RESTARTING) {
           try {
-            stopServer()
-            stopBluetooth()
+            tor.stop()
+            server.stop()
+            bluetooth.stop()
+            mqtt.stop()
           } catch (e: Exception) {
           }
 
-          if (serverThread?.isAlive != true || currentPort != port) startServer(port)
-          if (bluetoothThread?.isAlive != true || currentMac != mac) startBluetooth(mac)
+          if (!tor.isAlive || tor.currentPort != intentExtras.serverPort || tor.currentTorRc != intentExtras.torRc) tor.start(
+            intentExtras.serverPort,
+            intentExtras.torRc
+          )
+          if (!server.isAlive || server.currentPort != intentExtras.serverPort) server.start(
+            intentExtras.serverPort
+          )
+          if (!bluetooth.isAlive || bluetooth.currentMac != intentExtras.bluetoothMac) bluetooth.start(
+            intentExtras.bluetoothMac
+          )
+          if (!mqtt.isAlive || mqtt.currentConfig != mqttConfig) {
+            mqtt.start(mqttConfig)
+          }
         }
       }
 
       Actions.STOP.toString() -> {
         runCommand(Busy.STOPPING, releaseWhenDone = false) {
           try {
-            stopServer()
-            stopBluetooth()
+            server.stop()
+            bluetooth.stop()
+            tor.stop()
           } finally {
             mainHandler.post {
               stopForeground(STOP_FOREGROUND_REMOVE)
@@ -137,165 +193,31 @@ class GatewayForegroundService : Service() {
     }
   }
 
-  private fun startServer(port: Int) {
-    stopServer()
-    currentPort = port
-    serverRunningFlag = true
-    val debug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-
-    serverThread = thread(name = "server-loop") {
-      var server: EmbeddedServer<*, *>? = null
-
-      while (serverRunningFlag) {
-        if (server == null) {
-          try {
-            server = configureServer(
-              port = port,
-              sendViaBluetooth = ::sendViaBluetooth,
-              debug = debug,
-            ).start(wait = false)
-            isServerRunning = true
-          } catch (e: Exception) {
-            Log.e(TAG, "Server start failed, retrying", e)
-            Thread.sleep(SERVER_RETRY_DELAY_MS)
-          }
-        }
-
-        Thread.sleep(200)
-      }
-
-      isServerRunning = false
-      try {
-        server?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
-      } catch (e: Exception) {
-        Log.e(TAG, "Error stopping server", e)
-      }
-    }
-  }
-
-  private fun stopServer() {
-    serverRunningFlag = false
-    serverThread?.join()
-    serverThread = null
-  }
-
-  private fun startBluetooth(mac: String) {
-    stopBluetooth()
-    currentMac = mac
-    bluetoothRunningFlag = true
-    bluetoothThread = thread(name = "bluetooth-loop") {
-      while (bluetoothRunningFlag) {
-        if (hasBluetoothPermission() && adapter?.isEnabled == true) {
-          try {
-            connectAndRead(mac)
-          } catch (e: Exception) {
-            Log.w(TAG, "Bluetooth session ended: ${e.message}")
-          }
-        }
-        isBluetoothConnected = false
-
-        Thread.sleep(BLUETOOTH_RETRY_DELAY_MS)
-      }
-    }
-  }
-
-  private fun stopBluetooth() {
-    bluetoothRunningFlag = false
-    closeSocket()
-    bluetoothThread?.join()
-    bluetoothThread = null
-  }
-
-  private fun sendViaBluetooth(data: String): Boolean {
-    val p = proto ?: return false
-    try {
-      p.send(data)
-      return true
-    } catch (e: Exception) {
-      return false
-    }
-  }
-
-  private fun connectAndRead(mac: String) {
-    val s = adapter!!.getRemoteDevice(mac).createRfcommSocketToServiceRecord(SPP_UUID)
-    socket = s
-
-    if (!bluetoothRunningFlag) {
-      closeSocket()
-      return
-    }
-
-    var layer: SerialTransferLayer? = null
-    try {
-      s.connect()
-
-      layer = SerialTransferLayer(
-        onTransferData = { data ->
-          println(data)
-        },
-        transportWrite = { bytes ->
-          try {
-            s.outputStream.write(bytes)
-            s.outputStream.flush()
-          } catch (_: Exception) {
-          }
-        },
-      )
-      proto = layer
-      isBluetoothConnected = true
-
-      val buf = ByteArray(TransportGlobals.MTU)
-      while (bluetoothRunningFlag) {
-        val n = s.inputStream.read(buf)
-        if (n < 0) break
-        layer.onBytesReceived(buf, n)
-      }
-    } finally {
-      isBluetoothConnected = false
-      proto = null
-      closeSocket()
-      layer?.let { l ->
-        thread(name = "tinyproto-close") {
-          try {
-            l.close()
-          } catch (_: Exception) {
-          }
-        }
-      }
-    }
-  }
-
-  private fun closeSocket() {
-    try {
-      socket?.close()
-    } catch (_: Exception) {
-    }
-    socket = null
-  }
-
-  private fun hasBluetoothPermission(): Boolean =
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-      ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
-      PackageManager.PERMISSION_GRANTED
-
   private fun enterForeground() {
     createNotificationChannel()
 
     val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
       .setContentTitle("Gateway running")
-      .setContentText("Server running")
+      .setContentText("Gateway services are active")
       .setSmallIcon(SharedR.drawable.cipher_box_gateway_logo)
       .setOngoing(true)
       .build()
 
-    ServiceCompat.startForeground(
-      this,
-      NOTIFICATION_ID,
-      notification,
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      ServiceCompat.startForeground(
+        this,
+        NOTIFICATION_ID,
+        notification,
         ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-      else 0
-    )
+      )
+    } else {
+      ServiceCompat.startForeground(
+        this,
+        NOTIFICATION_ID,
+        notification,
+        0
+      )
+    }
   }
 
   private fun createNotificationChannel() {
@@ -308,39 +230,21 @@ class GatewayForegroundService : Service() {
   }
 
   override fun onDestroy() {
+    isTorReady = false
     isServerRunning = false
     isBluetoothConnected = false
+
     commands.execute {
-      stopServer()
-      stopBluetooth()
+      tor.stop()
+      server.stop()
+      bluetooth.stop()
     }
+
     commands.shutdown()
     // The service is gone: nothing can be busy any more. Tokens still held by queued
     // commands are removed again later, which is a harmless no-op.
     busyTokens.clear()
     super.onDestroy()
-  }
-
-  companion object {
-    private const val TAG = "GatewayService"
-    private const val DEFAULT_PORT = 8080
-    private const val CHANNEL_ID = "foreground_service_channel"
-    private const val NOTIFICATION_ID = 1
-    private const val SERVER_RETRY_DELAY_MS = 1_000L
-    private const val BLUETOOTH_RETRY_DELAY_MS = 3_000L
-    private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-
-    // One token per running or queued command. Empty list = not busy.
-    // A Compose state list, so reading isBusy in a composable recomposes it when tokens change.
-    val busyTokens = mutableStateListOf<Busy>()
-
-    val isBusy: Boolean get() = busyTokens.isNotEmpty()
-
-    var isServerRunning by mutableStateOf(false)
-      private set
-
-    var isBluetoothConnected by mutableStateOf(false)
-      private set
   }
 
   enum class Busy {
@@ -349,14 +253,62 @@ class GatewayForegroundService : Service() {
     STOPPING
   }
 
-  object Extra {
-    const val SERVER_PORT = "SERVER_PORT"
-    const val BLUETOOTH_MAC = "BLUETOOTH_MAC"
+  enum class Extra {
+    SERVER_PORT,
+    BLUETOOTH_MAC,
+    TOR_RC,
+    MQTT_HOST,
+    MQTT_PORT,
+    MQTT_TOPIC,
+    MQTT_USERNAME,
+    MQTT_PASSWORD
   }
 
   enum class Actions {
     START,
     STOP,
     RESTART
+  }
+
+  companion object {
+    private const val TAG = "GatewayService"
+    private const val DEFAULT_SERVER_PORT = 8080
+    private const val DEFAULT_MQTT_PORT = 8080
+    private const val CHANNEL_ID = "foreground_service_channel"
+    private const val NOTIFICATION_ID = 1
+
+    // One token per running or queued command. Empty list = not busy.
+    // A Compose state list, so reading isBusy in a composable recomposes it when tokens change.
+    val busyTokens = mutableStateListOf<Busy>()
+
+    val isBusy: Boolean get() = busyTokens.isNotEmpty()
+
+    var onionAddress by mutableStateOf<String?>(null)
+      private set
+
+    var isTorReady by mutableStateOf(false)
+      private set
+
+    var isServerRunning by mutableStateOf(false)
+      private set
+
+    var isBluetoothConnected by mutableStateOf(false)
+      private set
+
+    var isMqttConnected by mutableStateOf(false)
+      private set
+
+    fun putIntentExtras(intent: Intent, intentExtras: IntentExtras) {
+      intent.apply {
+        putExtra(Extra.TOR_RC.toString(), intentExtras.torRc)
+        putExtra(Extra.SERVER_PORT.toString(), intentExtras.serverPort)
+        putExtra(Extra.BLUETOOTH_MAC.toString(), intentExtras.bluetoothMac)
+        putExtra(Extra.MQTT_HOST.toString(), intentExtras.mqttHost)
+        putExtra(Extra.MQTT_PORT.toString(), intentExtras.mqttPort)
+        putExtra(Extra.MQTT_USERNAME.toString(), intentExtras.mqttUsername)
+        putExtra(Extra.MQTT_PASSWORD.toString(), intentExtras.mqttPassword)
+        putExtra(Extra.MQTT_TOPIC.toString(), intentExtras.mqttTopic)
+      }
+    }
   }
 }

@@ -3,17 +3,17 @@ package com.github.devlotfi.cipherbox.shared.data
 import androidx.room3.ColumnTypeConverters
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
-import com.github.devlotfi.cipherbox.shared.data.appdata.AppDataDao
-import com.github.devlotfi.cipherbox.shared.data.appdata.AppDataEntity
+import com.github.devlotfi.cipherbox.shared.data.logindata.LoginDataDao
+import com.github.devlotfi.cipherbox.shared.data.logindata.LoginDataEntity
 
 @Database(
   version = 1,
   exportSchema = false,
   entities = [
-    AppDataEntity::class
+    LoginDataEntity::class
   ],
 )
 @ColumnTypeConverters(LoginDbConverters::class)
 abstract class LoginDb : RoomDatabase() {
-  abstract fun appDataDao(): AppDataDao
+  abstract fun loginDataDao(): LoginDataDao
 }

@@ -51,7 +51,6 @@ fun InitScreen(
         // for dev only
         if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
           localLoginDb.loginDbManager.init(context)
-          localSqlCipherDb.sqlCipherDbManager.delete(context)
           localSqlCipherDb.sqlCipherDbManager.init(
             context,
             "test"

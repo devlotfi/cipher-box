@@ -8,6 +8,7 @@ composeVstore = "1.0.1"
 coreKtx = "1.19.1"
 coreSplashscreen = "1.2.0"
 graphicsShapes = "1.1.0"
+hivemqMqttClient = "1.4.2"
 kanyon = "1.0.1"
 kotlinStdlibJdk8 = "2.4.0"
 kotlinxCoroutinesCore = "1.11.0"
@@ -30,6 +31,7 @@ sqlite = "2.7.1"
 openapi-generator = "7.27.0"
 appcompat = "1.8.0"
 material = "1.14.0"
+torAndroid = "0.4.9.17"
 
 
 [libraries]
@@ -56,6 +58,7 @@ compose-vstore = { module = "com.github.devlotfi:compose-vstore", version.ref = 
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
+hivemq-mqtt-client = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "hivemqMqttClient" }
 kanyon = { module = "com.github.devlotfi:kanyon", version.ref = "kanyon" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlinStdlibJdk8" }
@@ -65,6 +68,7 @@ androidx-material3-adaptive-navigation3 = { group = "androidx.compose.material3.
 sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipherAndroid" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+tor-android = { module = "info.guardianproject:tor-android", version.ref = "torAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

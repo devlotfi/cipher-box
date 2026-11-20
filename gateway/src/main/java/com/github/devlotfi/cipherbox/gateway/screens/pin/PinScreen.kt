@@ -92,7 +92,7 @@ fun PinScreen(
       localLoginDb.loginDbManager.init(context)
       if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
       val appData =
-        localLoginDb.loginDbManager.db!!.appDataDao().get() ?: throw Exception("Error")
+        localLoginDb.loginDbManager.db!!.loginDataDao().get() ?: throw Exception("Error")
 
       if (params.pin == appData.duressPin) {
         try {

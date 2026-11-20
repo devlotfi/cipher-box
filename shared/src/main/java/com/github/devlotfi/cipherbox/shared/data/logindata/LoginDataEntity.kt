@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.shared.data.appdata
+package com.github.devlotfi.cipherbox.shared.data.logindata
 
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Entity
 @Serializable
-data class AppDataEntity(
+data class LoginDataEntity(
   @PrimaryKey
   val rowId: Int = SINGLETON_ID,
   val duressPin: String,

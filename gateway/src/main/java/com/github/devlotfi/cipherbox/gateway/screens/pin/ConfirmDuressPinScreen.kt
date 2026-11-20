@@ -24,9 +24,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
+import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
-import com.github.devlotfi.cipherbox.shared.data.appdata.AppDataEntity
+import com.github.devlotfi.cipherbox.shared.crypto.SHAUtils
+import com.github.devlotfi.cipherbox.shared.data.logindata.LoginDataEntity
 import com.github.devlotfi.cipherbox.shared.global.KeyStoreKeyAliases
 import com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever
 import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
@@ -66,9 +68,9 @@ fun ConfirmDuressPinScreen(
 
   val saveKeyGenResultMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("SAVE_KEY_GEN_RESULT")
-    mutateFn { params: AppDataEntity ->
+    mutateFn { params: LoginDataEntity ->
       if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
-      localLoginDb.loginDbManager.db?.appDataDao()?.save(
+      localLoginDb.loginDbManager.db?.loginDataDao()?.save(
         params
       )
       localSqlCipherDb.sqlCipherDbManager.close()
@@ -93,6 +95,16 @@ fun ConfirmDuressPinScreen(
 
       localSqlCipherDb.sqlCipherDbManager.delete(context)
       localSqlCipherDb.sqlCipherDbManager.init(context, sqlCipherPassword)
+      val apiKey = SHAUtils.generateKey()
+      val apiKeyHash = SHAUtils.hash(apiKey)
+      if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("Missing db")
+      localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
+        SettingsEntity(
+          apiKey = apiKey,
+          apiKeyHash = apiKeyHash
+        )
+      )
+
       localLoginDb.loginDbManager.delete(context)
       localLoginDb.loginDbManager.init(context)
 
@@ -113,18 +125,18 @@ fun ConfirmDuressPinScreen(
               pinEncryptionResult.ciphertext,
               authenticatedCipher
             )
-            val appDataEntity = AppDataEntity(
+            val loginDataEntity = LoginDataEntity(
               duressPin = duressPin,
-              aesGcmData = AppDataEntity.AesGcmData(
+              aesGcmData = LoginDataEntity.AesGcmData(
                 ciphertext = encrypted.ciphertext,
                 pinIv = pinEncryptionResult.iv,
                 ketStoreIv = encrypted.iv
               ),
-              argon2IdData = AppDataEntity.Argon2IdData(
+              argon2IdData = LoginDataEntity.Argon2IdData(
                 salt = salt
               )
             )
-            saveKeyGenResultMutation.mutate(appDataEntity)
+            saveKeyGenResultMutation.mutate(loginDataEntity)
           } catch (e: Exception) {
             e.printStackTrace()
             viewModel.error = "An error occured"

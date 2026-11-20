@@ -33,7 +33,9 @@ openApiGenerate {
 android {
   namespace = "com.github.devlotfi.cipherbox.openapi"
   compileSdk {
-    version = release(37)
+    version = release(37) {
+      minorApiLevel = 2
+    }
   }
 
   defaultConfig {

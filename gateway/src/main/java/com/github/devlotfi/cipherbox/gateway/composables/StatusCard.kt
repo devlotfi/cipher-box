@@ -49,8 +49,7 @@ fun StatusCard(
   modifier: Modifier = Modifier,
   title: String,
   status: CardStatus,
-  inactiveIcon: ImageVector,
-  activeIcon: ImageVector,
+  icon: ImageVector,
 ) {
   Card(
     modifier = modifier,
@@ -85,12 +84,12 @@ fun StatusCard(
       Column(
         modifier = Modifier
           .fillMaxSize()
-          .padding(bottom = 30.dp, top = 45.dp),
+          .padding(bottom = 10.dp, top = 35.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
       ) {
         Icon(
-          imageVector = if (status != CardStatus.ACTIVE) inactiveIcon else activeIcon,
+          imageVector = icon,
           contentDescription = null,
           modifier = Modifier.size(50.dp)
         )

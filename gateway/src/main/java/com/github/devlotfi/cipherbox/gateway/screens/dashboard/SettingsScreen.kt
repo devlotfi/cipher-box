@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.devlotfi.kanyon.schema.FieldSchema
+import com.devlotfi.kanyon.schema.nullable
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
@@ -64,19 +65,38 @@ class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {
     validateOnBlur = true
   }
 
-  val serverPort by formField(settingsEntity.serverPort.toString()) {
-    FieldSchema().string()
-      .regex(RegexPresets.portRegex, error = "Invalid port")
-      .notBlank().build()
-  }
   val torSocksProxyPort by formField(settingsEntity.torSocksProxyPort.toString()) {
     FieldSchema().string()
-      .regex(RegexPresets.portRegex, error = "Invalid port")
-      .notBlank().build()
+      .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
   }
-  val bluetoothClientMac by formField(settingsEntity.bluetoothClientMac) {
+  val torRc by formField(settingsEntity.torSocksProxyPort.toString()) {
+    FieldSchema().string().nullable().build()
+  }
+
+  val serverPort by formField(settingsEntity.serverPort.toString()) {
     FieldSchema().string()
-      .mac().build()
+      .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
+  }
+  val apiKey by formField(settingsEntity.serverPort.toString()) {
+    FieldSchema().string().notBlank().build()
+  }
+
+  val bluetoothClientMac by formField(settingsEntity.bluetoothClientMac) {
+    FieldSchema().string().mac().build()
+  }
+
+  val mqttHost by formField(settingsEntity.torSocksProxyPort.toString()) {
+    FieldSchema().string().notBlank().build()
+  }
+  val mqttPort by formField(settingsEntity.torSocksProxyPort.toString()) {
+    FieldSchema().string()
+      .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
+  }
+  val mqttUsername by formField(settingsEntity.torSocksProxyPort.toString()) {
+    FieldSchema().string().notBlank().nullable().build()
+  }
+  val mqttPassword by formField(settingsEntity.torSocksProxyPort.toString()) {
+    FieldSchema().string().notBlank().nullable().build()
   }
 }
 
