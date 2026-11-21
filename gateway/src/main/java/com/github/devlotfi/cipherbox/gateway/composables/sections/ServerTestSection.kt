@@ -4,21 +4,24 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.devlotfi.kanyon.schema.FieldSchema
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.InfoScreenViewModel
+import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 import com.github.devlotfi.cipherbox.openapi.apis.DefaultApi
+import com.github.devlotfi.cipherbox.shared.composables.ValidatedTextField
 import com.github.devlotfi.cipherbox.shared.global.JsonInstances
 import com.github.devlotfi.cipherbox.shared.global.KanyonFormDefinition
 import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
+import com.github.devlotfi.composeform.onBlur
 import com.github.devlotfi.composequery.rememberMutation
+import com.github.devlotfi.kanyon.schema.FieldSchema
 import io.ktor.client.engine.ProxyBuilder
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -30,7 +33,7 @@ class TestServerForm : KanyonFormDefinition() {
     validateOnBlur = true
   }
 
-  val url by formField("") {
+  val url by textField("") {
     FieldSchema().string().url().build()
   }
 }
@@ -80,21 +83,20 @@ fun ServerTestSection(
   ) {
     Text("Calls the hosted server via TOR proxy")
 
-    OutlinedTextField(
+    ValidatedTextField(
+      textFormFieldData = form.url,
       shape = RoundedCornerShape(15.dp),
-      modifier = Modifier.fillMaxWidth(),
-      singleLine = true,
+      modifier = Modifier
+        .onBlur(form.url)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
       enabled = !testServerMutation.loading,
       label = { Text("URL") },
-      value = form.url.value,
-      onValueChange = { form.url.value = it },
-      isError = form.url.error != null,
-      supportingText = { if (form.url.error != null) Text("${form.url.error}") else Unit }
     )
 
-    FilledTonalButton(
+    Button(
       modifier = Modifier.fillMaxWidth(),
-      enabled = !testServerMutation.loading,
+      enabled = !testServerMutation.loading && GatewayForegroundService.isServerRunning && GatewayForegroundService.isTorReady,
       shape = RoundedCornerShape(15.dp),
       onClick = {
         if (form.validate()) {

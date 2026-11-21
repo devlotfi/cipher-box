@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -39,7 +42,8 @@ import kotlinx.coroutines.launch
 fun ControlSection(
   modifier: Modifier = Modifier,
   viewModel: InfoScreenViewModel = viewModel(),
-  settings: SettingsEntity
+  settings: SettingsEntity,
+  allGranted: Boolean,
 ) {
   val context = LocalContext.current
 
@@ -51,13 +55,24 @@ fun ControlSection(
       verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
       if (settings.isMissingSettings()) Card(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
           containerColor = MaterialTheme.colorScheme.error
         )
       ) {
-        Text("Some settings are missing")
+        Row(
+          modifier = Modifier.padding(15.dp),
+          horizontalArrangement = Arrangement.spacedBy(10.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Icon(
+            imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.info,
+            contentDescription = null,
+            modifier = Modifier.size(30.dp)
+          )
+          Text("Some settings are missing")
+        }
       }
 
       Row(
@@ -105,7 +120,7 @@ fun ControlSection(
 
         StatusCard(
           modifier = Modifier.weight(1f),
-          title = "Tor",
+          title = "MQTT",
           status = when {
             GatewayForegroundService.busyTokens.contains(GatewayForegroundService.Busy.RESTARTING) -> CardStatus.RESTARTING
             GatewayForegroundService.isMqttConnected -> CardStatus.ACTIVE
@@ -159,7 +174,7 @@ fun ControlSection(
         modifier = Modifier.weight(1f),
         title = "Stop",
         icon = com.github.devlotfi.cipherbox.shared.icons.outlined.stop,
-        enabled = !GatewayForegroundService.isBusy || !settings.isMissingSettings(),
+        enabled = !GatewayForegroundService.isBusy && !settings.isMissingSettings() && allGranted,
         onClick = {
           if (settings.isMissingSettings()) return@ActionButton
           val intent = Intent(context, GatewayForegroundService::class.java)
@@ -172,18 +187,14 @@ fun ControlSection(
         modifier = Modifier.weight(1f),
         title = "Restart",
         icon = com.github.devlotfi.cipherbox.shared.icons.outlined.refresh,
-        enabled = !GatewayForegroundService.isBusy || !settings.isMissingSettings(),
+        enabled = !GatewayForegroundService.isBusy && !settings.isMissingSettings() && allGranted,
         onClick = {
           if (settings.isMissingSettings()) return@ActionButton
           val intent = Intent(context, GatewayForegroundService::class.java)
             .setAction(GatewayForegroundService.Actions.RESTART.toString())
           GatewayForegroundService.putIntentExtras(
             intent = intent,
-            intentExtras = GatewayForegroundService.IntentExtras(
-              torRc = "",
-              serverPort = 8080,
-
-              )
+            intentExtras = settings.toIntentExtras()
           )
           ContextCompat.startForegroundService(context, intent)
         }
@@ -193,17 +204,15 @@ fun ControlSection(
         modifier = Modifier.weight(1f),
         title = "Start",
         icon = com.github.devlotfi.cipherbox.shared.icons.outlined.play_arrow,
-        enabled = !GatewayForegroundService.isBusy || !settings.isMissingSettings(),
+        enabled = !GatewayForegroundService.isBusy && !settings.isMissingSettings() && allGranted,
         onClick = {
           if (settings.isMissingSettings()) return@ActionButton
           val intent = Intent(context, GatewayForegroundService::class.java)
-            .setAction(GatewayForegroundService.Actions.START.toString()).apply {
-              putExtra(GatewayForegroundService.Extra.SERVER_PORT.toString(), settings.serverPort)
-              putExtra(
-                GatewayForegroundService.Extra.BLUETOOTH_MAC.toString(),
-                settings.bluetoothClientMac
-              )
-            }
+            .setAction(GatewayForegroundService.Actions.START.toString())
+          GatewayForegroundService.putIntentExtras(
+            intent = intent,
+            intentExtras = settings.toIntentExtras()
+          )
           ContextCompat.startForegroundService(context, intent)
         }
       )

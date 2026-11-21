@@ -1,7 +1,7 @@
 package com.github.devlotfi.cipherbox.shared.global
 
-import com.devlotfi.kanyon.schema.FieldSchema
 import com.github.devlotfi.composeform.FormDefinition
+import com.github.devlotfi.kanyon.schema.FieldSchema
 
 abstract class KanyonFormDefinition(
   parent: FormDefinition<FieldSchema>? = null,

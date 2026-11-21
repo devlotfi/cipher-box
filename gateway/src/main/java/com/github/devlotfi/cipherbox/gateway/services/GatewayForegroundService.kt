@@ -39,8 +39,9 @@ class GatewayForegroundService : Service() {
 
     tor = GatewayTor(
       context = this,
-      loadOnionKey = { null },
-      saveOnionKey = { },
+      saveOnionKey = {
+        println(it)
+      },
       onReadyChanged = { isTorReady = it },
       onOnionAddressChanged = { onionAddress = it; println(it) },
     )
@@ -69,19 +70,32 @@ class GatewayForegroundService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   data class IntentExtras(
+    val onionKey: String?,
     val torRc: String?,
     val serverPort: Int,
+    val gatewayKeyHash: String,
     val bluetoothMac: String,
     val mqttHost: String,
     val mqttPort: Int = 8883,
     val mqttUsername: String? = null,
     val mqttPassword: String? = null,
     val mqttTopic: String
-  )
+  ) {
+    fun toMqttConfig(): GatewayMqtt.Config = GatewayMqtt.Config(
+      host = mqttHost,
+      port = mqttPort,
+      topic = mqttTopic,
+      username = mqttUsername,
+      password = mqttPassword
+    )
+  }
 
   fun getIntentExtras(intent: Intent): IntentExtras = IntentExtras(
+    onionKey = intent.getStringExtra(Extra.ONION_KEY.toString()),
     torRc = intent.getStringExtra(Extra.TOR_RC.toString()),
     serverPort = intent.getIntExtra(Extra.SERVER_PORT.toString(), DEFAULT_SERVER_PORT),
+    gatewayKeyHash = intent.getStringExtra(Extra.GATEWAY_KEY_HASH.toString())
+      ?: throw Exception("Missing data"),
     bluetoothMac = intent.getStringExtra(Extra.BLUETOOTH_MAC.toString())
       ?: throw Exception("Missing data"),
     mqttHost = intent.getStringExtra(Extra.MQTT_HOST.toString())
@@ -104,16 +118,19 @@ class GatewayForegroundService : Service() {
         val intentExtras = getIntentExtras(intent)
 
         runCommand(Busy.STARTING) {
-          if (!tor.isAlive || tor.currentPort != intentExtras.serverPort || tor.currentTorRc != intentExtras.torRc) tor.start(
+          if (!tor.isAlive) tor.start(
             intentExtras.serverPort,
-            intentExtras.torRc
+            intentExtras.torRc,
+            intentExtras.onionKey
           )
-          if (!server.isAlive || server.currentPort != intentExtras.serverPort) server.start(
-            intentExtras.serverPort
+          if (!server.isAlive) server.start(
+            intentExtras.serverPort,
+            intentExtras.gatewayKeyHash
           )
-          if (!bluetooth.isAlive || bluetooth.currentMac != intentExtras.bluetoothMac) bluetooth.start(
+          if (!bluetooth.isAlive) bluetooth.start(
             intentExtras.bluetoothMac
           )
+          if (!mqtt.isAlive) mqtt.start(intentExtras.toMqttConfig())
         }
       }
 
@@ -121,13 +138,6 @@ class GatewayForegroundService : Service() {
         enterForeground()
 
         val intentExtras = getIntentExtras(intent)
-        val mqttConfig = GatewayMqtt.Config(
-          host = intentExtras.mqttHost,
-          port = intentExtras.mqttPort,
-          username = intentExtras.mqttUsername,
-          password = intentExtras.mqttPassword,
-          topic = intentExtras.mqttTopic
-        )
 
         runCommand(Busy.RESTARTING) {
           try {
@@ -138,19 +148,10 @@ class GatewayForegroundService : Service() {
           } catch (e: Exception) {
           }
 
-          if (!tor.isAlive || tor.currentPort != intentExtras.serverPort || tor.currentTorRc != intentExtras.torRc) tor.start(
-            intentExtras.serverPort,
-            intentExtras.torRc
-          )
-          if (!server.isAlive || server.currentPort != intentExtras.serverPort) server.start(
-            intentExtras.serverPort
-          )
-          if (!bluetooth.isAlive || bluetooth.currentMac != intentExtras.bluetoothMac) bluetooth.start(
-            intentExtras.bluetoothMac
-          )
-          if (!mqtt.isAlive || mqtt.currentConfig != mqttConfig) {
-            mqtt.start(mqttConfig)
-          }
+          tor.start(intentExtras.serverPort, intentExtras.torRc, intentExtras.onionKey)
+          server.start(intentExtras.serverPort, intentExtras.gatewayKeyHash)
+          bluetooth.start(intentExtras.bluetoothMac)
+          mqtt.start(intentExtras.toMqttConfig())
         }
       }
 
@@ -160,6 +161,7 @@ class GatewayForegroundService : Service() {
             server.stop()
             bluetooth.stop()
             tor.stop()
+            mqtt.stop()
           } finally {
             mainHandler.post {
               stopForeground(STOP_FOREGROUND_REMOVE)
@@ -254,9 +256,11 @@ class GatewayForegroundService : Service() {
   }
 
   enum class Extra {
-    SERVER_PORT,
-    BLUETOOTH_MAC,
+    ONION_KEY,
     TOR_RC,
+    SERVER_PORT,
+    GATEWAY_KEY_HASH,
+    BLUETOOTH_MAC,
     MQTT_HOST,
     MQTT_PORT,
     MQTT_TOPIC,
@@ -300,8 +304,10 @@ class GatewayForegroundService : Service() {
 
     fun putIntentExtras(intent: Intent, intentExtras: IntentExtras) {
       intent.apply {
+        putExtra(Extra.ONION_KEY.toString(), intentExtras.onionKey)
         putExtra(Extra.TOR_RC.toString(), intentExtras.torRc)
         putExtra(Extra.SERVER_PORT.toString(), intentExtras.serverPort)
+        putExtra(Extra.GATEWAY_KEY_HASH.toString(), intentExtras.gatewayKeyHash)
         putExtra(Extra.BLUETOOTH_MAC.toString(), intentExtras.bluetoothMac)
         putExtra(Extra.MQTT_HOST.toString(), intentExtras.mqttHost)
         putExtra(Extra.MQTT_PORT.toString(), intentExtras.mqttPort)

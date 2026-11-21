@@ -31,7 +31,7 @@ enum class CardStatus(
   @StringRes val text: Int,
 ) {
   ACTIVE(
-    icon = com.github.devlotfi.cipherbox.shared.icons.outlined.check_circle,
+    icon = com.github.devlotfi.cipherbox.shared.icons.outlined.play_arrow,
     text = R.string.active
   ),
   RESTARTING(
@@ -39,7 +39,7 @@ enum class CardStatus(
     text = R.string.restarting
   ),
   INACTIVE(
-    icon = com.github.devlotfi.cipherbox.shared.icons.outlined.cancel,
+    icon = com.github.devlotfi.cipherbox.shared.icons.outlined.stop,
     text = R.string.inactive
   )
 }
@@ -71,14 +71,14 @@ fun StatusCard(
           .align(Alignment.TopStart)
           .padding(vertical = 5.dp, horizontal = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
       ) {
         Icon(
           imageVector = status.icon,
           contentDescription = null,
-          modifier = Modifier.size(30.dp)
+          modifier = Modifier.size(28.dp)
         )
-        Text(stringResource(status.text), fontSize = 15.sp, fontWeight = FontWeight.Medium)
+        Text(stringResource(status.text), fontSize = 12.sp, fontWeight = FontWeight.Medium)
       }
 
       Column(

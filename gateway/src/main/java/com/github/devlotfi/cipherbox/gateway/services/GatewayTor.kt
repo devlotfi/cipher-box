@@ -32,7 +32,6 @@ import kotlin.concurrent.thread
  */
 class GatewayTor(
   private val context: Context,
-  private val loadOnionKey: () -> String?,
   private val saveOnionKey: (String) -> Unit,
   private val onReadyChanged: (Boolean) -> Unit,
   private val onOnionAddressChanged: (String?) -> Unit = {},
@@ -47,6 +46,9 @@ class GatewayTor(
   // Latest status broadcast by TorService (TorService.STATUS_OFF / STARTING / ON / STOPPING)
   @Volatile
   private var torStatus: String = TorService.STATUS_OFF
+
+  var currentOnionKey: String? = null
+    private set
 
   // Set when TorService broadcasts ACTION_ERROR (for example a torrc that tor rejects)
   @Volatile
@@ -111,15 +113,16 @@ class GatewayTor(
   }
 
   /**
-   * @param port the local Ktor port the onion service forwards to
-   * @param torrc extra tor configuration, written to TorService's torrc file before every start.
+   * @param serverPort the local Ktor port the onion service forwards to
+   * @param torRc extra tor configuration, written to TorService's torrc file before every start.
    *   Do not set DataDirectory, CacheDirectory, ControlSocket or CookieAuthentication: TorService
    *   passes those on the command line, and the command line wins over the torrc.
    */
-  fun start(port: Int, torrc: String? = null) {
+  fun start(serverPort: Int, torRc: String? = null, onionKey: String?) {
     stop()
-    currentPort = port
-    currentTorRc = torrc
+    currentPort = serverPort
+    currentTorRc = torRc
+    currentOnionKey = onionKey
     running = true
 
     loopThread = thread(name = "tor-loop") {
@@ -267,7 +270,7 @@ class GatewayTor(
     val port = currentPort ?: return
 
     try {
-      val key = loadOnionKey() ?: "NEW:ED25519-V3"
+      val key = currentOnionKey ?: "NEW:ED25519-V3"
       val result = control.addOnion(key, mapOf(ONION_PORT to "127.0.0.1:$port"), emptyList())
 
       // Tor only returns the private key when it generated a new one

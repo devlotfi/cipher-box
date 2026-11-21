@@ -29,10 +29,18 @@ android {
       }
     }
   }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
   }
+
+  packaging {
+    resources {
+      excludes += listOf("META-INF/INDEX.LIST", "META-INF/io.netty.versions.properties")
+    }
+  }
+
   buildFeatures {
     compose = true
   }

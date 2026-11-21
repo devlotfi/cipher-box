@@ -25,6 +25,7 @@ data class SendBody(
 @OptIn(ExperimentalKtorApi::class)
 fun Application.configureRouting(
   sendViaBluetooth: (String) -> Boolean,
+  gatewayKeyHash: String,
 ) {
   routing {
     get("/test") {
@@ -39,6 +40,14 @@ fun Application.configureRouting(
     }
 
     post("/send") {
+      if (!call.hasValidApiKey(gatewayKeyHash)) {
+        call.respond(
+          HttpStatusCode.Unauthorized,
+          "Invalid or missing API key"
+        )
+        return@post
+      }
+
       val body = call.receive<SendBody>()
       println("Received data: ${body.data}")
       val result = sendViaBluetooth(body.data)
@@ -49,6 +58,9 @@ fun Application.configureRouting(
       }
     }.describe {
       operationId = "send"
+      security {
+        requirement("GatewayKeyAuth")
+      }
       requestBody {
         required = true
         schema = jsonSchema<SendBody>()

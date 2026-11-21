@@ -1,9 +1,7 @@
 package com.github.devlotfi.cipherbox.gateway.screens.dashboard
 
 import android.content.Intent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +11,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,32 +23,30 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.devlotfi.kanyon.schema.FieldSchema
-import com.devlotfi.kanyon.schema.nullable
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
+import com.github.devlotfi.cipherbox.shared.composables.SectionTitle
+import com.github.devlotfi.cipherbox.shared.crypto.SHAUtils
 import com.github.devlotfi.cipherbox.shared.global.KanyonFormDefinition
 import com.github.devlotfi.cipherbox.shared.global.RegexPresets
 import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
 import com.github.devlotfi.cipherbox.shared.utils.RoomFlowData
+import com.github.devlotfi.composeform.onBlur
 import com.github.devlotfi.composequery.QueryCache
 import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberMutation
 import com.github.devlotfi.composevstore.DataStore
+import com.github.devlotfi.kanyon.schema.FieldSchema
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -61,42 +58,45 @@ class SettingsScreenViewModel : ViewModel() {
 
 class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {
   init {
-    validateOnChange = true
+    validateOnChange = false
     validateOnBlur = true
   }
 
-  val torSocksProxyPort by formField(settingsEntity.torSocksProxyPort.toString()) {
+  val torSocksProxyPort by textField(settingsEntity.torSocksProxyPort.toString()) {
     FieldSchema().string()
       .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
   }
-  val torRc by formField(settingsEntity.torSocksProxyPort.toString()) {
-    FieldSchema().string().nullable().build()
+  val torRc by textField(settingsEntity.torRc ?: "") {
+    FieldSchema().string().build()
   }
 
-  val serverPort by formField(settingsEntity.serverPort.toString()) {
+  val serverPort by textField(settingsEntity.serverPort.toString()) {
     FieldSchema().string()
       .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
   }
-  val apiKey by formField(settingsEntity.serverPort.toString()) {
+  val gatewayKey by textField(settingsEntity.gatewayKey ?: "") {
     FieldSchema().string().notBlank().build()
   }
 
-  val bluetoothClientMac by formField(settingsEntity.bluetoothClientMac) {
+  val bluetoothMac by textField(settingsEntity.bluetoothMac) {
     FieldSchema().string().mac().build()
   }
 
-  val mqttHost by formField(settingsEntity.torSocksProxyPort.toString()) {
+  val mqttHost by textField(settingsEntity.mqttHost ?: "") {
     FieldSchema().string().notBlank().build()
   }
-  val mqttPort by formField(settingsEntity.torSocksProxyPort.toString()) {
+  val mqttPort by textField(settingsEntity.mqttPort.toString()) {
     FieldSchema().string()
       .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
   }
-  val mqttUsername by formField(settingsEntity.torSocksProxyPort.toString()) {
-    FieldSchema().string().notBlank().nullable().build()
+  val mqttUsername by textField(settingsEntity.mqttUsername ?: "") {
+    FieldSchema().string().build()
   }
-  val mqttPassword by formField(settingsEntity.torSocksProxyPort.toString()) {
-    FieldSchema().string().notBlank().nullable().build()
+  val mqttPassword by textField(settingsEntity.mqttPassword ?: "") {
+    FieldSchema().string().build()
+  }
+  val mqttTopic by textField(settingsEntity.mqttTopic ?: "") {
+    FieldSchema().string().notBlank().build()
   }
 }
 
@@ -129,20 +129,28 @@ fun SettingsScreen(
   val saveSettingsMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("SAVE_SETTINGS")
     mutateFn { params: Unit ->
-      localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
-        SettingsEntity(
-          serverPort = form.serverPort.value.toInt(),
-          torSocksProxyPort = form.torSocksProxyPort.value.toInt(),
-          bluetoothClientMac = form.bluetoothClientMac.value
-        )
+      val settingsEntity = SettingsEntity(
+        torSocksProxyPort = form.torSocksProxyPort.value.toInt(),
+        torRc = form.torRc.value.takeIf { it.isNotBlank() },
+        serverPort = form.serverPort.value.toInt(),
+        gatewayKey = form.gatewayKey.value,
+        gatewayKeyHash = SHAUtils.hash(form.gatewayKey.value),
+        bluetoothMac = form.bluetoothMac.value,
+        mqttHost = form.mqttHost.value,
+        mqttPort = form.mqttPort.value.toInt(),
+        mqttUsername = form.mqttUsername.value.takeIf { it.isNotBlank() },
+        mqttPassword = form.mqttPassword.value.takeIf { it.isNotBlank() },
+        mqttTopic = form.mqttTopic.value,
       )
+      localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(settingsEntity)
 
       if (GatewayForegroundService.isServerRunning || GatewayForegroundService.isBluetoothConnected) {
         val intent = Intent(context, GatewayForegroundService::class.java)
-          .setAction(GatewayForegroundService.Actions.RESTART.toString()).apply {
-            putExtra(GatewayForegroundService.Extra.SERVER_PORT, form.serverPort.value.toInt())
-            putExtra(GatewayForegroundService.Extra.BLUETOOTH_MAC, form.bluetoothClientMac.value)
-          }
+          .setAction(GatewayForegroundService.Actions.RESTART.toString())
+        GatewayForegroundService.putIntentExtras(
+          intent = intent,
+          intentExtras = settingsEntity.toIntentExtras()
+        )
         context.startService(intent)
       }
     }
@@ -158,9 +166,16 @@ fun SettingsScreen(
 
   LaunchedEffect(settingsFlowData.data) {
     settingsFlowData.data?.let {
-      form.serverPort.value = it.serverPort.toString()
+      form.torRc.value = it.torRc ?: ""
       form.torSocksProxyPort.value = it.torSocksProxyPort.toString()
-      form.bluetoothClientMac.value = it.bluetoothClientMac
+      form.serverPort.value = it.serverPort.toString()
+      form.gatewayKey.value = it.gatewayKey ?: ""
+      form.bluetoothMac.value = it.bluetoothMac
+      form.mqttHost.value = it.mqttHost ?: ""
+      form.mqttPort.value = it.mqttPort.toString()
+      form.mqttUsername.value = it.mqttUsername ?: ""
+      form.mqttPassword.value = it.mqttPassword ?: ""
+      form.mqttTopic.value = it.mqttTopic ?: ""
     }
   }
 
@@ -177,77 +192,178 @@ fun SettingsScreen(
       .padding(horizontal = 10.dp)
       .padding(top = 20.dp, bottom = 50.dp)
   ) {
-    Row(
-      modifier = Modifier.padding(bottom = 20.dp),
-      horizontalArrangement = Arrangement.spacedBy(10.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Box(
-        modifier = Modifier
-          .clip(
-            RoundedCornerShape(10.dp)
-          )
-          .background(MaterialTheme.colorScheme.primary)
-          .padding(3.dp)
-      ) {
-        Icon(
-          imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.settings,
-          contentDescription = null,
-          modifier = Modifier.size(30.dp),
-          tint = MaterialTheme.colorScheme.onPrimary
-        )
-      }
-      Text("Settings", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-    }
-
-    OutlinedTextField(
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier.fillMaxWidth(),
-      singleLine = true,
-      keyboardOptions = KeyboardOptions(
-        keyboardType = KeyboardType.Number
-      ),
-      label = { Text("Server port") },
-      value = form.serverPort.value,
-      onValueChange = { form.serverPort.value = it },
-      isError = form.serverPort.error != null,
-      supportingText = { if (form.serverPort.error != null) Text("${form.serverPort.error}") else Unit }
+    SectionTitle(
+      text = "Tor Settings",
+      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.tor
     )
 
     OutlinedTextField(
+      state = form.torSocksProxyPort.state,
+      inputTransformation = form.torSocksProxyPort.inputTransformation,
       shape = RoundedCornerShape(15.dp),
-      modifier = Modifier.fillMaxWidth(),
-      singleLine = true,
-      keyboardOptions = KeyboardOptions(
-        keyboardType = KeyboardType.Number
-      ),
-      label = { Text("TOR Socks proxy port") },
-      value = form.torSocksProxyPort.value,
-      onValueChange = { form.torSocksProxyPort.value = it },
+      modifier = Modifier
+        .onBlur(form.torSocksProxyPort)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+      label = { Text("Tor Socks proxy port") },
       isError = form.torSocksProxyPort.error != null,
-      supportingText = { if (form.torSocksProxyPort.error != null) Text("${form.torSocksProxyPort.error}") else Unit }
+      supportingText = { form.torSocksProxyPort.error?.let { Text(it) } }
     )
 
     OutlinedTextField(
+      state = form.torRc.state,
+      inputTransformation = form.torRc.inputTransformation,
       shape = RoundedCornerShape(15.dp),
-      modifier = Modifier.fillMaxWidth(),
-      singleLine = true,
-      label = { Text("Bluetooth client mac") },
-      value = form.bluetoothClientMac.value ?: "",
-      onValueChange = { form.bluetoothClientMac.value = it },
-      isError = form.bluetoothClientMac.error != null,
-      supportingText = { if (form.bluetoothClientMac.error != null) Text("${form.bluetoothClientMac.error}") else Unit }
+      modifier = Modifier
+        .onBlur(form.torRc)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 5),
+      label = { Text("Tor Config") },
+      isError = form.torRc.error != null,
+      supportingText = { form.torRc.error?.let { Text(it) } }
+    )
+
+    SectionTitle(
+      text = "Server Settings",
+      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.public
+    )
+
+    OutlinedTextField(
+      state = form.serverPort.state,
+      inputTransformation = form.serverPort.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.serverPort)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+      label = { Text("Server port") },
+      isError = form.serverPort.error != null,
+      supportingText = { form.serverPort.error?.let { Text(it) } }
+    )
+
+    OutlinedTextField(
+      state = form.gatewayKey.state,
+      readOnly = true,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.gatewayKey)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      label = { Text("Gateway Key") },
+      trailingIcon = {
+        Row(
+          modifier = Modifier.padding(horizontal = 5.dp),
+          horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+          IconButton(onClick = { }) {
+            Icon(
+              imageVector = com.github.devlotfi.cipherbox.shared.icons.error,
+              contentDescription = null,
+              modifier = Modifier.size(30.dp)
+            )
+          }
+        }
+      },
+      isError = form.gatewayKey.error != null,
+      supportingText = { form.gatewayKey.error?.let { Text(it) } }
+    )
+
+    SectionTitle(
+      text = "Bluetooth Settings",
+      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.bluetooth
+    )
+
+    OutlinedTextField(
+      state = form.bluetoothMac.state,
+      inputTransformation = form.bluetoothMac.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.bluetoothMac)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      label = { Text("ESP32 Bluetooth mac") },
+      isError = form.bluetoothMac.error != null,
+      supportingText = { form.bluetoothMac.error?.let { Text(it) } }
+    )
+
+    SectionTitle(
+      text = "MQTT Settings",
+      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.mqtt
+    )
+
+    OutlinedTextField(
+      state = form.mqttHost.state,
+      inputTransformation = form.mqttHost.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.mqttHost)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      label = { Text("MQTT Host") },
+      isError = form.mqttHost.error != null,
+      supportingText = { form.mqttHost.error?.let { Text(it) } }
+    )
+
+    OutlinedTextField(
+      state = form.mqttPort.state,
+      inputTransformation = form.mqttPort.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.mqttPort)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+      label = { Text("MQTT port") },
+      isError = form.mqttPort.error != null,
+      supportingText = { form.mqttPort.error?.let { Text(it) } }
+    )
+
+    OutlinedTextField(
+      state = form.mqttUsername.state,
+      inputTransformation = form.mqttUsername.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.mqttUsername)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      label = { Text("MQTT Username") },
+      isError = form.mqttUsername.error != null,
+      supportingText = { form.mqttUsername.error?.let { Text(it) } }
+    )
+
+    OutlinedTextField(
+      state = form.mqttPassword.state,
+      inputTransformation = form.mqttPassword.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.mqttPassword)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      label = { Text("MQTT Password") },
+      isError = form.mqttPassword.error != null,
+      supportingText = { form.mqttPassword.error?.let { Text(it) } }
+    )
+
+    OutlinedTextField(
+      state = form.mqttTopic.state,
+      inputTransformation = form.mqttTopic.inputTransformation,
+      shape = RoundedCornerShape(15.dp),
+      modifier = Modifier
+        .onBlur(form.mqttTopic)
+        .fillMaxWidth(),
+      lineLimits = TextFieldLineLimits.SingleLine,
+      label = { Text("MQTT Topic") },
+      isError = form.mqttTopic.error != null,
+      supportingText = { form.mqttTopic.error?.let { Text(it) } }
     )
 
     Button(
       shape = RoundedCornerShape(15.dp),
       enabled = !saveSettingsMutation.loading,
       modifier = Modifier.fillMaxWidth(),
-      onClick = {
-        if (form.validate()) {
-          saveSettingsMutation.mutate(Unit)
-        }
-      },
+      onClick = { if (form.validate()) saveSettingsMutation.mutate(Unit) },
     ) {
       Text("Save", modifier = Modifier.padding(7.dp))
     }

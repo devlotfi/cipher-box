@@ -42,6 +42,7 @@ import com.github.devlotfi.composevstore.DataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.example.utils.ARGON2IDUtils
+import java.util.UUID
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 class ConfirmDuressPinScreenViewModel : ViewModel() {
@@ -100,8 +101,9 @@ fun ConfirmDuressPinScreen(
       if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("Missing db")
       localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
         SettingsEntity(
-          apiKey = apiKey,
-          apiKeyHash = apiKeyHash
+          gatewayKey = apiKey,
+          gatewayKeyHash = apiKeyHash,
+          mqttTopic = UUID.randomUUID().toString()
         )
       )
 

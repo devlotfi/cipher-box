@@ -25,11 +25,15 @@ class GatewayServer(
   var currentPort: Int? = null
     private set
 
+  var currentGatewayKeyHash: String? = null
+    private set
+
   val isAlive: Boolean get() = loopThread?.isAlive == true
 
-  fun start(port: Int, apiKeyHash: String) {
+  fun start(port: Int, gatewayKeyHash: String) {
     stop()
     currentPort = port
+    currentGatewayKeyHash = gatewayKeyHash
     running = true
 
     loopThread = thread(name = "server-loop") {
@@ -41,6 +45,7 @@ class GatewayServer(
             server = configureServer(
               port = port,
               sendViaBluetooth = sendViaBluetooth,
+              gatewayKeyHash = gatewayKeyHash,
               debug = debug,
             ).start(wait = false)
             onRunningChanged(true)

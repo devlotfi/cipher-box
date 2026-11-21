@@ -4,8 +4,12 @@ import io.ktor.server.application.Application
 
 fun Application.rootModule(
   sendViaBluetooth: (String) -> Boolean,
+  gatewayKeyHash: String,
   debug: Boolean,
 ) {
   configureHttp(debug)
-  configureRouting(sendViaBluetooth)
+  configureRouting(
+    sendViaBluetooth = sendViaBluetooth,
+    gatewayKeyHash = gatewayKeyHash,
+  )
 }

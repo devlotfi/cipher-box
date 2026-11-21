@@ -8,6 +8,7 @@ import io.ktor.server.engine.embeddedServer
 fun configureServer(
   port: Int,
   sendViaBluetooth: (String) -> Boolean,
+  gatewayKeyHash: String,
   debug: Boolean = false,
 ): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
   return embeddedServer(
@@ -17,6 +18,7 @@ fun configureServer(
     module = {
       rootModule(
         sendViaBluetooth = sendViaBluetooth,
+        gatewayKeyHash = gatewayKeyHash,
         debug = debug
       )
     }

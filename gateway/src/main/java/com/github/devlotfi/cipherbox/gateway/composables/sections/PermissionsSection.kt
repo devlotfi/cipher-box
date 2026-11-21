@@ -1,6 +1,5 @@
 package com.github.devlotfi.cipherbox.gateway.composables.sections
 
-import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,8 +13,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -24,14 +22,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.devlotfi.cipherbox.gateway.screens.dashboard.AppPermission
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.InfoScreenViewModel
+import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 
-private data class AppPermission(
-  val permission: String,
-  val title: String,
-)
-
-private fun isPermissionGranted(
+fun isPermissionGranted(
   context: android.content.Context,
   permission: AppPermission
 ): Boolean {
@@ -42,27 +37,13 @@ private fun isPermissionGranted(
 @Composable
 fun PermissionSection(
   modifier: Modifier = Modifier,
-  viewModel: InfoScreenViewModel = viewModel()
+  viewModel: InfoScreenViewModel = viewModel(),
+  appPermissions: List<AppPermission>,
+  missingPermissions: List<AppPermission>,
+  grantedState: SnapshotStateMap<String, Boolean>,
+  allGranted: Boolean
 ) {
   val context = LocalContext.current
-
-  val form by viewModel.dataStore.rememberValueInDataStore("TEST_SERVER_FORM") {
-    TestServerForm()
-  }
-
-  val appPermissions = remember {
-    listOf(
-      AppPermission(
-        permission = Manifest.permission.BLUETOOTH_CONNECT,
-        title = "Bluetooth",
-      ),
-      AppPermission(
-        permission = Manifest.permission.POST_NOTIFICATIONS,
-        title = "Notifications",
-      )
-    )
-  }
-  val grantedState = remember { mutableStateMapOf<String, Boolean>() }
 
   fun refreshPermissions() {
     appPermissions.forEach { grantedState[it.permission] = isPermissionGranted(context, it) }
@@ -73,9 +54,6 @@ fun PermissionSection(
   val permissionLauncher = rememberLauncherForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions()
   ) { refreshPermissions() }
-
-  val missingPermissions = appPermissions.filter { grantedState[it.permission] != true }
-  val allGranted = missingPermissions.isEmpty()
 
   Column(
     modifier = Modifier.fillMaxWidth()
@@ -101,7 +79,7 @@ fun PermissionSection(
         .fillMaxWidth()
         .padding(horizontal = 10.dp, vertical = 8.dp),
       shape = RoundedCornerShape(15.dp),
-      enabled = !allGranted,
+      enabled = !allGranted && !GatewayForegroundService.isBusy,
       onClick = {
         permissionLauncher.launch(missingPermissions.map { it.permission }.toTypedArray())
       }
