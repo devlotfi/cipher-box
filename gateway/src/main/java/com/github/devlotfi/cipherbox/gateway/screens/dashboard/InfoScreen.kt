@@ -98,6 +98,17 @@ fun InfoScreen(
     HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
     SectionTitle(
+      text = "Server test",
+      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.data_object,
+      modifier = Modifier.padding(10.dp)
+    )
+    ServerTestSection(
+      settings = settings
+    )
+
+    HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
+
+    SectionTitle(
       text = "Permissions",
       imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.shield,
       modifier = Modifier.padding(10.dp)
@@ -107,17 +118,6 @@ fun InfoScreen(
       missingPermissions = missingPermissions,
       grantedState = grantedState,
       allGranted = allGranted
-    )
-
-    HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-
-    SectionTitle(
-      text = "Server test",
-      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.data_object,
-      modifier = Modifier.padding(10.dp)
-    )
-    ServerTestSection(
-      settings = settings
     )
   }
 }

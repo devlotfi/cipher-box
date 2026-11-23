@@ -18,6 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.github.devlotfi.cipherbox.shared.transport.packet.OutboundGatewayPacket
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 import com.github.devlotfi.cipherbox.shared.R as SharedR
 
@@ -26,43 +32,85 @@ import com.github.devlotfi.cipherbox.shared.R as SharedR
  * The actual work lives in GatewayServer and GatewayBluetooth.
  */
 class GatewayForegroundService : Service() {
-
+  private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
   private val commands = Executors.newSingleThreadExecutor()
   private val mainHandler = Handler(Looper.getMainLooper())
   private lateinit var tor: GatewayTor
   private lateinit var bluetooth: GatewayBluetooth
   private lateinit var server: GatewayServer
   private lateinit var mqtt: GatewayMqtt
+  private lateinit var torReceiver: GatewayTorReceiver
+  private lateinit var mqttReceiver: GatewayMqttReceiver
+  private lateinit var senderTor: GatewayTorSender
+  private lateinit var senderMqtt: GatewayMqttSender
 
   override fun onCreate() {
     super.onCreate()
 
     tor = GatewayTor(
       context = this,
-      saveOnionKey = {
-        println(it)
-      },
+      saveOnionKey = { currentOnionKey = it },
       onReadyChanged = { isTorReady = it },
-      onOnionAddressChanged = { onionAddress = it; println(it) },
+      onOnionAddressChanged = { onionAddress = it },
     )
     bluetooth = GatewayBluetooth(
       context = this,
       onConnectedChanged = { isBluetoothConnected = it },
+      onOutboundGatewayPacket = {
+        when (it) {
+          is OutboundGatewayPacket.DataTor -> serviceScope.launch {
+            senderTor.enqueue(it)
+          }
+
+          is OutboundGatewayPacket.DataMqtt -> serviceScope.launch {
+            senderMqtt.enqueue(it)
+          }
+
+          is OutboundGatewayPacket.Ack -> serviceScope.launch {
+            torReceiver.ack(it)
+            mqttReceiver.ack(it)
+          }
+        }
+      }
     )
     server = GatewayServer(
       debug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0,
-      sendViaBluetooth = bluetooth::send,
       onRunningChanged = { isServerRunning = it },
+      onTransportPacket = {
+        serviceScope.launch {
+          mqttReceiver.receive(it)
+        }
+      },
     )
     mqtt = GatewayMqtt(
-      onConnectedChanged = { connected ->
-        isMqttConnected = connected
+      onConnectedChanged = { isMqttConnected = it },
+      onTransportPacket = {
+        serviceScope.launch {
+          mqttReceiver.receive(it)
+        }
+      }
+    )
+    torReceiver = GatewayTorReceiver(
+      onBluetoothSend = {
+        bluetooth.send(it)
       },
-      onMessage = { topic, payload ->
-        Log.d(TAG, "MQTT message received on $topic")
-
-        // Handle incoming messages here.
-        // Avoid logging payloads if they contain sensitive data.
+    )
+    mqttReceiver = GatewayMqttReceiver(
+      onBluetoothSend = {
+        bluetooth.send(it)
+      },
+      onMqttSend = { data, topic ->
+        mqtt.send(topic, data)
+      }
+    )
+    senderTor = GatewayTorSender(
+      onBluetoothSend = {
+        bluetooth.send(it)
+      }
+    )
+    senderMqtt = GatewayMqttSender(
+      onMqttSend = { data, topic ->
+        mqtt.send(topic, data)
       }
     )
   }
@@ -72,8 +120,6 @@ class GatewayForegroundService : Service() {
   data class IntentExtras(
     val onionKey: String?,
     val torRc: String?,
-    val serverPort: Int,
-    val gatewayKeyHash: String,
     val bluetoothMac: String,
     val mqttHost: String,
     val mqttPort: Int = 8883,
@@ -93,9 +139,6 @@ class GatewayForegroundService : Service() {
   fun getIntentExtras(intent: Intent): IntentExtras = IntentExtras(
     onionKey = intent.getStringExtra(Extra.ONION_KEY.toString()),
     torRc = intent.getStringExtra(Extra.TOR_RC.toString()),
-    serverPort = intent.getIntExtra(Extra.SERVER_PORT.toString(), DEFAULT_SERVER_PORT),
-    gatewayKeyHash = intent.getStringExtra(Extra.GATEWAY_KEY_HASH.toString())
-      ?: throw Exception("Missing data"),
     bluetoothMac = intent.getStringExtra(Extra.BLUETOOTH_MAC.toString())
       ?: throw Exception("Missing data"),
     mqttHost = intent.getStringExtra(Extra.MQTT_HOST.toString())
@@ -119,18 +162,18 @@ class GatewayForegroundService : Service() {
 
         runCommand(Busy.STARTING) {
           if (!tor.isAlive) tor.start(
-            intentExtras.serverPort,
-            intentExtras.torRc,
-            intentExtras.onionKey
+            torRc = intentExtras.torRc,
+            onionKey = intentExtras.onionKey
           )
-          if (!server.isAlive) server.start(
-            intentExtras.serverPort,
-            intentExtras.gatewayKeyHash
-          )
+          if (!server.isAlive) server.start()
           if (!bluetooth.isAlive) bluetooth.start(
             intentExtras.bluetoothMac
           )
           if (!mqtt.isAlive) mqtt.start(intentExtras.toMqttConfig())
+          torReceiver.start()
+          mqttReceiver.start(intentExtras.mqttTopic)
+          senderTor.start()
+          senderMqtt.start(intentExtras.mqttTopic)
         }
       }
 
@@ -145,13 +188,24 @@ class GatewayForegroundService : Service() {
             server.stop()
             bluetooth.stop()
             mqtt.stop()
+            torReceiver.stop()
+            mqttReceiver.stop()
+            senderTor.stop()
+            senderMqtt.stop()
           } catch (e: Exception) {
           }
 
-          tor.start(intentExtras.serverPort, intentExtras.torRc, intentExtras.onionKey)
-          server.start(intentExtras.serverPort, intentExtras.gatewayKeyHash)
+          tor.start(
+            torRc = intentExtras.torRc,
+            onionKey = intentExtras.onionKey
+          )
+          server.start()
           bluetooth.start(intentExtras.bluetoothMac)
           mqtt.start(intentExtras.toMqttConfig())
+          torReceiver.start()
+          mqttReceiver.start(intentExtras.mqttTopic)
+          senderTor.start()
+          senderMqtt.start(intentExtras.mqttTopic)
         }
       }
 
@@ -162,6 +216,10 @@ class GatewayForegroundService : Service() {
             bluetooth.stop()
             tor.stop()
             mqtt.stop()
+            torReceiver.stop()
+            mqttReceiver.stop()
+            senderTor.stop()
+            senderMqtt.stop()
           } finally {
             mainHandler.post {
               stopForeground(STOP_FOREGROUND_REMOVE)
@@ -232,6 +290,8 @@ class GatewayForegroundService : Service() {
   }
 
   override fun onDestroy() {
+    serviceScope.cancel()
+
     isTorReady = false
     isServerRunning = false
     isBluetoothConnected = false
@@ -302,12 +362,13 @@ class GatewayForegroundService : Service() {
     var isMqttConnected by mutableStateOf(false)
       private set
 
+    var currentOnionKey by mutableStateOf<String?>(null)
+      private set
+
     fun putIntentExtras(intent: Intent, intentExtras: IntentExtras) {
       intent.apply {
         putExtra(Extra.ONION_KEY.toString(), intentExtras.onionKey)
         putExtra(Extra.TOR_RC.toString(), intentExtras.torRc)
-        putExtra(Extra.SERVER_PORT.toString(), intentExtras.serverPort)
-        putExtra(Extra.GATEWAY_KEY_HASH.toString(), intentExtras.gatewayKeyHash)
         putExtra(Extra.BLUETOOTH_MAC.toString(), intentExtras.bluetoothMac)
         putExtra(Extra.MQTT_HOST.toString(), intentExtras.mqttHost)
         putExtra(Extra.MQTT_PORT.toString(), intentExtras.mqttPort)

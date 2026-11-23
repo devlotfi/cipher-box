@@ -1,22 +1,16 @@
 package com.github.devlotfi.cipherbox.gateway.screens.dashboard
 
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +30,8 @@ import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.composables.SectionTitle
-import com.github.devlotfi.cipherbox.shared.crypto.SHAUtils
+import com.github.devlotfi.cipherbox.shared.composables.ValidatedOutlinedSecureTextField
+import com.github.devlotfi.cipherbox.shared.composables.ValidatedOutlinedTextField
 import com.github.devlotfi.cipherbox.shared.global.KanyonFormDefinition
 import com.github.devlotfi.cipherbox.shared.global.RegexPresets
 import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
@@ -62,20 +57,8 @@ class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {
     validateOnBlur = true
   }
 
-  val torSocksProxyPort by textField(settingsEntity.torSocksProxyPort.toString()) {
-    FieldSchema().string()
-      .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
-  }
   val torRc by textField(settingsEntity.torRc ?: "") {
     FieldSchema().string().build()
-  }
-
-  val serverPort by textField(settingsEntity.serverPort.toString()) {
-    FieldSchema().string()
-      .regex(RegexPresets.portRegex, error = "Invalid port").notBlank().build()
-  }
-  val gatewayKey by textField(settingsEntity.gatewayKey ?: "") {
-    FieldSchema().string().notBlank().build()
   }
 
   val bluetoothMac by textField(settingsEntity.bluetoothMac) {
@@ -130,11 +113,7 @@ fun SettingsScreen(
     mutateKey = listOf("SAVE_SETTINGS")
     mutateFn { params: Unit ->
       val settingsEntity = SettingsEntity(
-        torSocksProxyPort = form.torSocksProxyPort.value.toInt(),
         torRc = form.torRc.value.takeIf { it.isNotBlank() },
-        serverPort = form.serverPort.value.toInt(),
-        gatewayKey = form.gatewayKey.value,
-        gatewayKeyHash = SHAUtils.hash(form.gatewayKey.value),
         bluetoothMac = form.bluetoothMac.value,
         mqttHost = form.mqttHost.value,
         mqttPort = form.mqttPort.value.toInt(),
@@ -167,9 +146,6 @@ fun SettingsScreen(
   LaunchedEffect(settingsFlowData.data) {
     settingsFlowData.data?.let {
       form.torRc.value = it.torRc ?: ""
-      form.torSocksProxyPort.value = it.torSocksProxyPort.toString()
-      form.serverPort.value = it.serverPort.toString()
-      form.gatewayKey.value = it.gatewayKey ?: ""
       form.bluetoothMac.value = it.bluetoothMac
       form.mqttHost.value = it.mqttHost ?: ""
       form.mqttPort.value = it.mqttPort.toString()
@@ -197,77 +173,15 @@ fun SettingsScreen(
       imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.tor
     )
 
-    OutlinedTextField(
-      state = form.torSocksProxyPort.state,
-      inputTransformation = form.torSocksProxyPort.inputTransformation,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.torSocksProxyPort)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-      label = { Text("Tor Socks proxy port") },
-      isError = form.torSocksProxyPort.error != null,
-      supportingText = { form.torSocksProxyPort.error?.let { Text(it) } }
-    )
-
-    OutlinedTextField(
-      state = form.torRc.state,
-      inputTransformation = form.torRc.inputTransformation,
+    ValidatedOutlinedTextField(
+      textFormFieldData = form.torRc,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.torRc)
         .fillMaxWidth(),
       lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 5),
       label = { Text("Tor Config") },
-      isError = form.torRc.error != null,
-      supportingText = { form.torRc.error?.let { Text(it) } }
-    )
-
-    SectionTitle(
-      text = "Server Settings",
-      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.public
-    )
-
-    OutlinedTextField(
-      state = form.serverPort.state,
-      inputTransformation = form.serverPort.inputTransformation,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.serverPort)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-      label = { Text("Server port") },
-      isError = form.serverPort.error != null,
-      supportingText = { form.serverPort.error?.let { Text(it) } }
-    )
-
-    OutlinedTextField(
-      state = form.gatewayKey.state,
-      readOnly = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.gatewayKey)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
-      label = { Text("Gateway Key") },
-      trailingIcon = {
-        Row(
-          modifier = Modifier.padding(horizontal = 5.dp),
-          horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-          IconButton(onClick = { }) {
-            Icon(
-              imageVector = com.github.devlotfi.cipherbox.shared.icons.error,
-              contentDescription = null,
-              modifier = Modifier.size(30.dp)
-            )
-          }
-        }
-      },
-      isError = form.gatewayKey.error != null,
-      supportingText = { form.gatewayKey.error?.let { Text(it) } }
     )
 
     SectionTitle(
@@ -275,17 +189,14 @@ fun SettingsScreen(
       imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.bluetooth
     )
 
-    OutlinedTextField(
-      state = form.bluetoothMac.state,
-      inputTransformation = form.bluetoothMac.inputTransformation,
+    ValidatedOutlinedSecureTextField(
+      textFormFieldData = form.bluetoothMac,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.bluetoothMac)
         .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
       label = { Text("ESP32 Bluetooth mac") },
-      isError = form.bluetoothMac.error != null,
-      supportingText = { form.bluetoothMac.error?.let { Text(it) } }
     )
 
     SectionTitle(
@@ -293,22 +204,20 @@ fun SettingsScreen(
       imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.mqtt
     )
 
-    OutlinedTextField(
-      state = form.mqttHost.state,
-      inputTransformation = form.mqttHost.inputTransformation,
+    ValidatedOutlinedTextField(
+      textFormFieldData = form.mqttHost,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.mqttHost)
         .fillMaxWidth(),
       lineLimits = TextFieldLineLimits.SingleLine,
       label = { Text("MQTT Host") },
-      isError = form.mqttHost.error != null,
-      supportingText = { form.mqttHost.error?.let { Text(it) } }
     )
 
-    OutlinedTextField(
-      state = form.mqttPort.state,
-      inputTransformation = form.mqttPort.inputTransformation,
+    ValidatedOutlinedTextField(
+      textFormFieldData = form.mqttPort,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.mqttPort)
@@ -316,47 +225,37 @@ fun SettingsScreen(
       lineLimits = TextFieldLineLimits.SingleLine,
       keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
       label = { Text("MQTT port") },
-      isError = form.mqttPort.error != null,
-      supportingText = { form.mqttPort.error?.let { Text(it) } }
     )
 
-    OutlinedTextField(
-      state = form.mqttUsername.state,
-      inputTransformation = form.mqttUsername.inputTransformation,
+    ValidatedOutlinedTextField(
+      textFormFieldData = form.mqttUsername,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.mqttUsername)
         .fillMaxWidth(),
       lineLimits = TextFieldLineLimits.SingleLine,
       label = { Text("MQTT Username") },
-      isError = form.mqttUsername.error != null,
-      supportingText = { form.mqttUsername.error?.let { Text(it) } }
     )
 
-    OutlinedTextField(
-      state = form.mqttPassword.state,
-      inputTransformation = form.mqttPassword.inputTransformation,
+    ValidatedOutlinedSecureTextField(
+      textFormFieldData = form.mqttPassword,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.mqttPassword)
         .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
       label = { Text("MQTT Password") },
-      isError = form.mqttPassword.error != null,
-      supportingText = { form.mqttPassword.error?.let { Text(it) } }
     )
 
-    OutlinedTextField(
-      state = form.mqttTopic.state,
-      inputTransformation = form.mqttTopic.inputTransformation,
+    ValidatedOutlinedSecureTextField(
+      textFormFieldData = form.mqttTopic,
+      enableCopyButton = true,
       shape = RoundedCornerShape(15.dp),
       modifier = Modifier
         .onBlur(form.mqttTopic)
         .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
       label = { Text("MQTT Topic") },
-      isError = form.mqttTopic.error != null,
-      supportingText = { form.mqttTopic.error?.let { Text(it) } }
     )
 
     Button(

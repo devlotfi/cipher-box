@@ -1,7 +1,6 @@
 package com.github.devlotfi.cipherbox.gateway.composables.sections
 
 import android.content.Intent
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,13 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -27,15 +26,10 @@ import com.github.devlotfi.cipherbox.gateway.composables.ActionButton
 import com.github.devlotfi.cipherbox.gateway.composables.CardStatus
 import com.github.devlotfi.cipherbox.gateway.composables.StatusCard
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
+import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.InfoScreenViewModel
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
-import com.github.devlotfi.cipherbox.shared.global.JsonInstances
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.ProxyBuilder
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.get
-import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
@@ -46,6 +40,17 @@ fun ControlSection(
   allGranted: Boolean,
 ) {
   val context = LocalContext.current
+  val localSqlCipherDb = LocalSqlCipherDb.current
+
+  SideEffect(GatewayForegroundService.currentOnionKey) {
+    if (GatewayForegroundService.currentOnionKey == null) return@SideEffect
+    val settingsCopy = settings.copy(
+      onionKey = GatewayForegroundService.currentOnionKey
+    )
+    viewModel.viewModelScope.launch(Dispatchers.IO) {
+      localSqlCipherDb.sqlCipherDbManager.db?.settingsDao()?.save(settingsCopy)
+    }
+  }
 
   Column(
     modifier = modifier.fillMaxWidth()
@@ -129,41 +134,6 @@ fun ControlSection(
           icon = com.github.devlotfi.cipherbox.shared.icons.outlined.mqtt,
         )
       }
-    }
-
-
-    Text("Tor: ${GatewayForegroundService.onionAddress}")
-    Button(onClick = {
-      val client = HttpClient(
-        engine = OkHttp.create {
-          proxy = ProxyBuilder.socks(
-            host = "127.0.0.1",
-            port = settings.torSocksProxyPort
-          )
-        }
-      ) {
-        install(ContentNegotiation) {
-          json(JsonInstances.jsonInstance)
-        }
-      }
-      viewModel.viewModelScope.launch {
-        try {
-          val response =
-            client.get("https://search.brave4u7jddbv7cyviptqjc7jusxh72uik7zt6adtckl5f4nwy2v72qd.onion/search?q=node+js")
-          if (response.status.value in 200..299) {
-            Toast.makeText(
-              context,
-              "Successfully reached onion service!",
-              Toast.LENGTH_LONG
-            ).show()
-          }
-        } catch (e: Exception) {
-          e.printStackTrace()
-        }
-      }
-      client.close()
-    }) {
-      Text("test")
     }
 
     Row(

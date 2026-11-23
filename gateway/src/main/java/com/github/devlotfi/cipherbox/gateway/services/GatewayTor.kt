@@ -60,11 +60,6 @@ class GatewayTor(
   @Volatile
   private var bound = false
 
-  /** The local port of the Ktor server that the onion service forwards to. */
-  @Volatile
-  var currentPort: Int? = null
-    private set
-
   /** The torrc text tor was (or is being) started with. Null or blank = no custom torrc. */
   @Volatile
   var currentTorRc: String? = null
@@ -118,9 +113,8 @@ class GatewayTor(
    *   Do not set DataDirectory, CacheDirectory, ControlSocket or CookieAuthentication: TorService
    *   passes those on the command line, and the command line wins over the torrc.
    */
-  fun start(serverPort: Int, torRc: String? = null, onionKey: String?) {
+  fun start(torRc: String? = null, onionKey: String?) {
     stop()
-    currentPort = serverPort
     currentTorRc = torRc
     currentOnionKey = onionKey
     running = true
@@ -267,11 +261,9 @@ class GatewayTor(
    * On failure onionAddress stays null and the next poll tries again.
    */
   private fun publishOnion(control: TorControlConnection) {
-    val port = currentPort ?: return
-
     try {
       val key = currentOnionKey ?: "NEW:ED25519-V3"
-      val result = control.addOnion(key, mapOf(ONION_PORT to "127.0.0.1:$port"), emptyList())
+      val result = control.addOnion(key, mapOf(ONION_PORT to "127.0.0.1:8080"), emptyList())
 
       // Tor only returns the private key when it generated a new one
       result[TorControlCommands.HS_PRIVKEY]?.let(saveOnionKey)
@@ -279,7 +271,7 @@ class GatewayTor(
       val address = result[TorControlCommands.HS_ADDRESS]
         ?: throw IllegalStateException("ADD_ONION returned no address")
       setOnionAddress("$address.onion")
-      Log.i(TAG, "Onion service published: $address.onion -> 127.0.0.1:$port")
+      Log.i(TAG, "Onion service published: $address.onion -> 127.0.0.1:8080")
     } catch (e: Exception) {
       Log.e(TAG, "Publishing onion service failed, retrying", e)
     }

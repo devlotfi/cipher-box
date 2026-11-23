@@ -8,8 +8,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.github.devlotfi.cipherbox.shared.global.JsonInstances
 import com.github.devlotfi.cipherbox.shared.transport.SerialTransferLayer
 import com.github.devlotfi.cipherbox.shared.transport.TransportGlobals
+import com.github.devlotfi.cipherbox.shared.transport.packet.OutboundGatewayPacket
 import java.util.UUID
 import kotlin.concurrent.thread
 
@@ -23,6 +25,7 @@ import kotlin.concurrent.thread
 class GatewayBluetooth(
   private val context: Context,
   private val onConnectedChanged: (Boolean) -> Unit,
+  private val onOutboundGatewayPacket: (OutboundGatewayPacket) -> Unit
 ) {
   @Volatile
   private var loopThread: Thread? = null
@@ -76,6 +79,7 @@ class GatewayBluetooth(
 
   /** Returns false if there is no connection right now or the send failed. */
   fun send(data: String): Boolean {
+    println("Inbound bluetooth: $data")
     val p = proto ?: return false // read the CURRENT layer on every call
     return try {
       p.send(data)
@@ -100,15 +104,31 @@ class GatewayBluetooth(
 
       layer = SerialTransferLayer(
         onTransferData = { data ->
-          println(data)
+          println("BT transfer data: $data")
+          val outboundGatewayPacket =
+            JsonInstances.jsonInstance.decodeFromString<OutboundGatewayPacket>(data)
+          onOutboundGatewayPacket(outboundGatewayPacket)
         },
         transportWrite = { bytes ->
+          val hex = bytes
+            .take(64)
+            .joinToString(" ") {
+              "%02X".format(it.toInt() and 0xFF)
+            }
+
+          Log.d(
+            TAG,
+            "TX ${bytes.size} bytes: $hex${if (bytes.size > 64) " ..." else ""}"
+          )
+
           try {
             s.outputStream.write(bytes)
             s.outputStream.flush()
-          } catch (_: Exception) {
+          } catch (e: Exception) {
+            Log.e(TAG, "Bluetooth write failed", e)
+            closeSocket()
           }
-        },
+        }
       )
       proto = layer
       onConnectedChanged(true)

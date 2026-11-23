@@ -1,5 +1,6 @@
 package com.github.devlotfi.cipherbox.gateway.ktor
 
+import com.github.devlotfi.cipherbox.shared.transport.packet.TransportPacket
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
 import io.ktor.server.application.Application
@@ -17,15 +18,9 @@ data class TestResponse(
   val status: String = "OK"
 )
 
-@Serializable
-data class SendBody(
-  val data: String
-)
-
 @OptIn(ExperimentalKtorApi::class)
 fun Application.configureRouting(
-  sendViaBluetooth: (String) -> Boolean,
-  gatewayKeyHash: String,
+  onTransportPacket: (TransportPacket.DataTor) -> Unit,
 ) {
   routing {
     get("/test") {
@@ -40,30 +35,23 @@ fun Application.configureRouting(
     }
 
     post("/send") {
-      if (!call.hasValidApiKey(gatewayKeyHash)) {
+      val body = try {
+        call.receive<TransportPacket.DataTor>()
+      } catch (e: Exception) {
         call.respond(
-          HttpStatusCode.Unauthorized,
-          "Invalid or missing API key"
+          HttpStatusCode.BadRequest,
+          "Invalid packet"
         )
         return@post
       }
-
-      val body = call.receive<SendBody>()
-      println("Received data: ${body.data}")
-      val result = sendViaBluetooth(body.data)
-      if (result) {
-        call.respond(HttpStatusCode.InternalServerError)
-      } else {
-        call.respond(TestResponse())
-      }
+      println("Received data: ${body}")
+      onTransportPacket(body)
+      call.respond(TestResponse())
     }.describe {
       operationId = "send"
-      security {
-        requirement("GatewayKeyAuth")
-      }
       requestBody {
         required = true
-        schema = jsonSchema<SendBody>()
+        schema = jsonSchema<TransportPacket.DataTor>()
       }
       responses {
         HttpStatusCode.OK {

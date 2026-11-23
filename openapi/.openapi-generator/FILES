@@ -9,5 +9,9 @@ src/main/java/com/github/devlotfi/cipherbox/openapi/infrastructure/ApiClient.kt
 src/main/java/com/github/devlotfi/cipherbox/openapi/infrastructure/HttpResponse.kt
 src/main/java/com/github/devlotfi/cipherbox/openapi/infrastructure/RequestConfig.kt
 src/main/java/com/github/devlotfi/cipherbox/openapi/infrastructure/RequestMethod.kt
-src/main/java/com/github/devlotfi/cipherbox/openapi/models/SendBody.kt
+src/main/java/com/github/devlotfi/cipherbox/openapi/models/DATA.kt
+src/main/java/com/github/devlotfi/cipherbox/openapi/models/Level2CipherPacket.kt
+src/main/java/com/github/devlotfi/cipherbox/openapi/models/Level2CipherPacketAESGCMData.kt
+src/main/java/com/github/devlotfi/cipherbox/openapi/models/Level2CipherPacketHKDFData.kt
+src/main/java/com/github/devlotfi/cipherbox/openapi/models/Level2CipherPacketMLKEMData.kt
 src/main/java/com/github/devlotfi/cipherbox/openapi/models/TestResponse.kt

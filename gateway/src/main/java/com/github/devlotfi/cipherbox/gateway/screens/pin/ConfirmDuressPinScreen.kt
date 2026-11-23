@@ -27,7 +27,6 @@ import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
-import com.github.devlotfi.cipherbox.shared.crypto.SHAUtils
 import com.github.devlotfi.cipherbox.shared.data.logindata.LoginDataEntity
 import com.github.devlotfi.cipherbox.shared.global.KeyStoreKeyAliases
 import com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever
@@ -96,13 +95,9 @@ fun ConfirmDuressPinScreen(
 
       localSqlCipherDb.sqlCipherDbManager.delete(context)
       localSqlCipherDb.sqlCipherDbManager.init(context, sqlCipherPassword)
-      val apiKey = SHAUtils.generateKey()
-      val apiKeyHash = SHAUtils.hash(apiKey)
       if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("Missing db")
       localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
         SettingsEntity(
-          gatewayKey = apiKey,
-          gatewayKeyHash = apiKeyHash,
           mqttTopic = UUID.randomUUID().toString()
         )
       )

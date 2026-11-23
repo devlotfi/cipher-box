@@ -2,6 +2,7 @@ package com.github.devlotfi.cipherbox.gateway.services
 
 import android.util.Log
 import com.github.devlotfi.cipherbox.gateway.ktor.configureServer
+import com.github.devlotfi.cipherbox.shared.transport.packet.TransportPacket
 import io.ktor.server.engine.EmbeddedServer
 import kotlin.concurrent.thread
 
@@ -13,7 +14,7 @@ import kotlin.concurrent.thread
  */
 class GatewayServer(
   private val debug: Boolean,
-  private val sendViaBluetooth: (String) -> Boolean,
+  private val onTransportPacket: (TransportPacket.DataTor) -> Unit,
   private val onRunningChanged: (Boolean) -> Unit,
 ) {
   @Volatile
@@ -22,18 +23,10 @@ class GatewayServer(
   @Volatile
   private var running = false
 
-  var currentPort: Int? = null
-    private set
-
-  var currentGatewayKeyHash: String? = null
-    private set
-
   val isAlive: Boolean get() = loopThread?.isAlive == true
 
-  fun start(port: Int, gatewayKeyHash: String) {
+  fun start() {
     stop()
-    currentPort = port
-    currentGatewayKeyHash = gatewayKeyHash
     running = true
 
     loopThread = thread(name = "server-loop") {
@@ -43,9 +36,7 @@ class GatewayServer(
         if (server == null) {
           try {
             server = configureServer(
-              port = port,
-              sendViaBluetooth = sendViaBluetooth,
-              gatewayKeyHash = gatewayKeyHash,
+              onTransportPacket = onTransportPacket,
               debug = debug,
             ).start(wait = false)
             onRunningChanged(true)

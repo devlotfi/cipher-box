@@ -68,6 +68,7 @@ dependencies {
 
   implementation(libs.tor.android)
   implementation(libs.hivemq.mqtt.client)
+  implementation(platform(libs.hivemq.mqtt.client.proxy))
 
   ksp(libs.androidx.room3.compiler)
   implementation(libs.androidx.room3.runtime)

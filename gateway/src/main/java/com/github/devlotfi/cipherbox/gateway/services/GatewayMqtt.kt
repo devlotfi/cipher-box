@@ -1,8 +1,12 @@
 package com.github.devlotfi.cipherbox.gateway.services
 
 import android.util.Log
-import com.hivemq.client.mqtt.MqttClientState
+import com.github.devlotfi.cipherbox.shared.global.JsonInstances
+import com.github.devlotfi.cipherbox.shared.transport.packet.TransportPacket
+import com.hivemq.client.mqtt.MqttClientTransportConfig
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter
+import com.hivemq.client.mqtt.MqttProxyConfig
+import com.hivemq.client.mqtt.MqttProxyProtocol
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedContext
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
@@ -28,7 +32,7 @@ import java.util.concurrent.TimeUnit
  */
 class GatewayMqtt(
   private val onConnectedChanged: (Boolean) -> Unit,
-  private val onMessage: (topic: String, payload: ByteArray) -> Unit,
+  private val onTransportPacket: (TransportPacket) -> Unit,
 ) {
   /** Everything needed to connect. username and password are optional. */
   data class Config(
@@ -45,21 +49,8 @@ class GatewayMqtt(
   @Volatile
   private var session: Session? = null
 
-  val currentConfig: Config? get() = session?.config
-
   /** True from start() until stop(), whatever state the connection is in. */
   val isAlive: Boolean get() = session != null
-
-  /**
-   * The HiveMQ client's own state: DISCONNECTED, CONNECTING, CONNECTED,
-   * DISCONNECTED_RECONNECT (waiting for the next attempt) or CONNECTING_RECONNECT.
-   * Null when not started.
-   */
-  val state: MqttClientState? get() = session?.client?.state
-
-  /** Connected to the broker and the topic subscription has been confirmed. */
-  val isConnected: Boolean
-    get() = session?.let { it.subscribed && it.client.state.isConnected } == true
 
   fun start(config: Config) {
     stop()
@@ -81,8 +72,7 @@ class GatewayMqtt(
    */
   fun send(topic: String, payload: ByteArray): Boolean {
     val c = session?.client ?: return false // read the CURRENT client on every call
-    if (!c.state.isConnected) return false
-    return try {
+    return c.state.isConnected && try {
       val result = c.publishWith()
         .topic(topic)
         .payload(payload)
@@ -119,8 +109,19 @@ class GatewayMqtt(
     val client: Mqtt5AsyncClient = build()
 
     private fun build(): Mqtt5AsyncClient {
+      val proxyConfig = MqttProxyConfig.builder()
+        .protocol(MqttProxyProtocol.SOCKS_5)
+        .host("127.0.0.1")
+        .port(9050)
+        .build()
+
+      val transportConfig = MqttClientTransportConfig.builder()
+        .proxyConfig(proxyConfig)
+        .build()
+
       var builder: Mqtt5ClientBuilder = Mqtt5Client.builder()
         // Kept by the client across reconnects
+        .transportConfig(transportConfig)
         .identifier("cipherbox-gateway-${UUID.randomUUID().toString().take(8)}")
         .serverHost(config.host)
         .serverPort(config.port)
@@ -148,9 +149,25 @@ class GatewayMqtt(
       // registered for the life of the client, across reconnects.
       client.publishes(MqttGlobalPublishFilter.ALL) { publish ->
         try {
-          onMessage(publish.topic.toString(), publish.payloadAsBytes)
+          val transportPacket =
+            JsonInstances.jsonInstance.decodeFromString<TransportPacket>(
+              String(
+                publish.payloadAsBytes,
+                Charsets.UTF_8
+              )
+            )
+
+          if (transportPacket is TransportPacket.DataMqtt) {
+            println("MQTT: $transportPacket")
+            val ack = TransportPacket.Ack(
+              requestId = transportPacket.requestId
+            )
+            val rawAck = JsonInstances.jsonInstance.encodeToString<TransportPacket>(ack)
+            send(transportPacket.ackTopic, rawAck)
+            onTransportPacket(transportPacket)
+          }
         } catch (e: Exception) {
-          Log.e(TAG, "onMessage failed", e)
+          e.printStackTrace()
         }
       }
 

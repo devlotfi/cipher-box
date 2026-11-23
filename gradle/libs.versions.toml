@@ -9,6 +9,7 @@ coreKtx = "1.19.1"
 coreSplashscreen = "1.2.0"
 graphicsShapes = "1.1.0"
 hivemqMqttClient = "1.4.2"
+hivemqMqttClientProxy = "1.4.2"
 kanyon = "1.0.2"
 kotlinStdlibJdk8 = "2.4.0"
 kotlinxCoroutinesCore = "1.11.0"
@@ -32,6 +33,7 @@ openapi-generator = "7.27.0"
 appcompat = "1.8.0"
 material = "1.14.0"
 torAndroid = "0.4.9.17"
+usbSerialForAndroid = "3.12.0"
 
 
 [libraries]
@@ -59,6 +61,7 @@ androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runt
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
 hivemq-mqtt-client = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "hivemqMqttClient" }
+hivemq-mqtt-client-proxy = { module = "com.hivemq:hivemq-mqtt-client-proxy", version.ref = "hivemqMqttClientProxy" }
 kanyon = { module = "com.github.devlotfi:kanyon", version.ref = "kanyon" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 kotlin-stdlib-jdk8 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlinStdlibJdk8" }
@@ -69,6 +72,7 @@ sqlcipher-android = { module = "net.zetetic:sqlcipher-android", version.ref = "s
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 tor-android = { module = "info.guardianproject:tor-android", version.ref = "torAndroid" }
+usb-serial-for1-android = { module = "com.github.mik3y:usb-serial-for-android", version.ref = "usbSerialForAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,15 +1,14 @@
 package com.github.devlotfi.cipherbox.gateway.ktor
 
+import com.github.devlotfi.cipherbox.shared.transport.packet.TransportPacket
 import io.ktor.server.application.Application
 
 fun Application.rootModule(
-  sendViaBluetooth: (String) -> Boolean,
-  gatewayKeyHash: String,
+  onTransportPacket: (TransportPacket.DataTor) -> Unit,
   debug: Boolean,
 ) {
   configureHttp(debug)
   configureRouting(
-    sendViaBluetooth = sendViaBluetooth,
-    gatewayKeyHash = gatewayKeyHash,
+    onTransportPacket = onTransportPacket,
   )
 }

@@ -57,6 +57,8 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
 
+  implementation(libs.usb.serial.for1.android)
+
   ksp(libs.androidx.room3.compiler)
   implementation(libs.androidx.room3.runtime)
   implementation(libs.sqlcipher.android)
@@ -65,6 +67,7 @@ dependencies {
   implementation(libs.compose.query)
   implementation(libs.compose.vstore)
   implementation(libs.compose.form)
+  implementation(libs.kanyon)
 
   implementation(project(":shared"))
 }

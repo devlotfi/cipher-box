@@ -23,20 +23,31 @@
 
 package com.github.devlotfi.cipherbox.openapi.models
 
+import com.github.devlotfi.cipherbox.openapi.models.Level2CipherPacketAESGCMData
+import com.github.devlotfi.cipherbox.openapi.models.Level2CipherPacketHKDFData
+import com.github.devlotfi.cipherbox.openapi.models.Level2CipherPacketMLKEMData
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * @param `data`
+ * @param mlKemData
+ * @param hkdfData
+ * @param aesGcmData
  */
 @Serializable
 
-data class SendBody (
+data class Level2CipherPacket (
 
-    @SerialName(value = "data")
-    val `data`: kotlin.String
+    @SerialName(value = "mlKemData")
+    val mlKemData: Level2CipherPacketMLKEMData,
+
+    @SerialName(value = "hkdfData")
+    val hkdfData: Level2CipherPacketHKDFData,
+
+    @SerialName(value = "aesGcmData")
+    val aesGcmData: Level2CipherPacketAESGCMData
 
 ) {
 
