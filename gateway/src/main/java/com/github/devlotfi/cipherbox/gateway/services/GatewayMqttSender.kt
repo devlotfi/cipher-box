@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
 
 class GatewayMqttSender(
-  val onMqttSend: (data: String, topic: String) -> Unit
+  val onMqttSend: (topic: String, data: String) -> Unit
 ) {
   @Volatile
   private var loopThread: Thread? = null
@@ -36,7 +36,7 @@ class GatewayMqttSender(
             val transportPacket = outboundGatewayPacket.toTransportPacket(topic)
             val rawTransportPacket =
               JsonInstances.jsonInstance.encodeToString<TransportPacket>(transportPacket)
-            onMqttSend(rawTransportPacket, topic)
+            onMqttSend(topic, rawTransportPacket)
           }
 
           Thread.sleep(1000)

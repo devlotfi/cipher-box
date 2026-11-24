@@ -11,7 +11,7 @@ import kotlin.concurrent.thread
 
 class GatewayMqttReceiver(
   val onBluetoothSend: (String) -> Unit,
-  val onMqttSend: (data: String, topic: String) -> Unit
+  val onMqttSend: (topic: String, data: String) -> Unit
 ) {
   @Volatile
   private var loopThread: Thread? = null
@@ -33,7 +33,8 @@ class GatewayMqttReceiver(
     } else {
       queue.enqueue(transportPacket)
       if (currentTopic != null) {
-        val ackTransportPacket = TransportPacket.Ack(requestId = transportPacket.requestId)
+        val ackTransportPacket =
+          TransportPacket.Ack(requestId = transportPacket.requestId)
         val rawAckTransportPacket =
           JsonInstances.jsonInstance.encodeToString<TransportPacket>(ackTransportPacket)
         onMqttSend(currentTopic!!, rawAckTransportPacket)
@@ -46,8 +47,8 @@ class GatewayMqttReceiver(
   }
 
   fun start(topic: String) {
-    currentTopic = topic
     stop()
+    currentTopic = topic
     running = true
 
     loopThread = thread(name = "mqtt-receiver") {

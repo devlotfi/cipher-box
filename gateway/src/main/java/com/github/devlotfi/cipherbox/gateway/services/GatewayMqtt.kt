@@ -156,16 +156,7 @@ class GatewayMqtt(
                 Charsets.UTF_8
               )
             )
-
-          if (transportPacket is TransportPacket.DataMqtt) {
-            println("MQTT: $transportPacket")
-            val ack = TransportPacket.Ack(
-              requestId = transportPacket.requestId
-            )
-            val rawAck = JsonInstances.jsonInstance.encodeToString<TransportPacket>(ack)
-            send(transportPacket.ackTopic, rawAck)
-            onTransportPacket(transportPacket)
-          }
+          onTransportPacket(transportPacket)
         } catch (e: Exception) {
           e.printStackTrace()
         }

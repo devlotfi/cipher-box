@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.github.devlotfi.cipherbox.shared.global.JsonInstances
+import com.github.devlotfi.cipherbox.shared.transport.packet.InboundGatewayPacket
 import com.github.devlotfi.cipherbox.shared.transport.packet.OutboundGatewayPacket
 import java.util.concurrent.Executors
 import com.github.devlotfi.cipherbox.shared.R as SharedR
@@ -40,12 +41,14 @@ class ClientForegroundService : Service() {
       onConnectedChanged = { isUsbConnected = it },
       onStatusChanged = { usbStatus = it },
       onInboundGatewayPacket = {
-        println("Recived by serial: $it")
-        val ack = OutboundGatewayPacket.Ack(
-          requestId = it.requestId
-        )
-        val rawAck = JsonInstances.jsonInstance.encodeToString<OutboundGatewayPacket>(ack)
-        usb.send(rawAck)
+        println("CLIENT Recived by serial: $it")
+        if (it !is InboundGatewayPacket.Ack) {
+          val ack = OutboundGatewayPacket.Ack(
+            requestId = it.requestId
+          )
+          val rawAck = JsonInstances.jsonInstance.encodeToString<OutboundGatewayPacket>(ack)
+          usb.send(rawAck)
+        }
       },
     )
     usbInstance = usb

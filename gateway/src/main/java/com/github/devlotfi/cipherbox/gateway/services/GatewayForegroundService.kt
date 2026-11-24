@@ -57,6 +57,7 @@ class GatewayForegroundService : Service() {
       context = this,
       onConnectedChanged = { isBluetoothConnected = it },
       onOutboundGatewayPacket = {
+        println("GATEWAY BLUETOOTH OUTBOUND: $it")
         when (it) {
           is OutboundGatewayPacket.DataTor -> serviceScope.launch {
             senderTor.enqueue(it)
@@ -85,6 +86,7 @@ class GatewayForegroundService : Service() {
     mqtt = GatewayMqtt(
       onConnectedChanged = { isMqttConnected = it },
       onTransportPacket = {
+        println("GATEWAY MQTT RECEIVED: $it")
         serviceScope.launch {
           mqttReceiver.receive(it)
         }
@@ -97,9 +99,11 @@ class GatewayForegroundService : Service() {
     )
     mqttReceiver = GatewayMqttReceiver(
       onBluetoothSend = {
+        println("GATEWAY BLUETOOTH INBOUND: $it")
         bluetooth.send(it)
       },
-      onMqttSend = { data, topic ->
+      onMqttSend = { topic, data ->
+        println("GATEWAY MQTT OUTBOUND (RECEIVER): $data")
         mqtt.send(topic, data)
       }
     )
@@ -109,7 +113,8 @@ class GatewayForegroundService : Service() {
       }
     )
     senderMqtt = GatewayMqttSender(
-      onMqttSend = { data, topic ->
+      onMqttSend = { topic, data ->
+        println("GATEWAY MQTT OUTBOUND (SENDER): $data")
         mqtt.send(topic, data)
       }
     )
