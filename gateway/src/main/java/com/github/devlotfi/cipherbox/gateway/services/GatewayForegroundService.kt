@@ -59,15 +59,15 @@ class GatewayForegroundService : Service() {
       onOutboundGatewayPacket = {
         println("GATEWAY BLUETOOTH OUTBOUND: $it")
         when (it) {
-          is OutboundGatewayPacket.DataTor -> serviceScope.launch {
+          is OutboundGatewayPacket.DataTor -> serviceScope.launch(Dispatchers.IO) {
             senderTor.enqueue(it)
           }
 
-          is OutboundGatewayPacket.DataMqtt -> serviceScope.launch {
+          is OutboundGatewayPacket.DataMqtt -> serviceScope.launch(Dispatchers.IO) {
             senderMqtt.enqueue(it)
           }
 
-          is OutboundGatewayPacket.Ack -> serviceScope.launch {
+          is OutboundGatewayPacket.Ack -> serviceScope.launch(Dispatchers.IO) {
             torReceiver.ack(it)
             mqttReceiver.ack(it)
           }
@@ -78,8 +78,9 @@ class GatewayForegroundService : Service() {
       debug = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0,
       onRunningChanged = { isServerRunning = it },
       onTransportPacket = {
-        serviceScope.launch {
-          mqttReceiver.receive(it)
+        println("GATEWAY SERVER RECEIVED: $it")
+        serviceScope.launch(Dispatchers.IO) {
+          torReceiver.receive(it)
         }
       },
     )
@@ -87,7 +88,7 @@ class GatewayForegroundService : Service() {
       onConnectedChanged = { isMqttConnected = it },
       onTransportPacket = {
         println("GATEWAY MQTT RECEIVED: $it")
-        serviceScope.launch {
+        serviceScope.launch(Dispatchers.IO) {
           mqttReceiver.receive(it)
         }
       }

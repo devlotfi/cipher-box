@@ -52,7 +52,7 @@ class SerialTinyProtoLayer(
     while (running && System.nanoTime() < deadline) {
       val rc = lock.read { if (handle != 0L) nativeSend(handle, frame) else -1 }
       if (rc >= 0) return true
-      println("write returned $rc, retrying")
+      //println("write returned $rc, retrying")
       Thread.sleep(2)
     }
     return false

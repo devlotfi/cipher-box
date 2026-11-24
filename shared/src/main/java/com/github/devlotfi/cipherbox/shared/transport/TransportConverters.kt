@@ -12,6 +12,13 @@ fun OutboundGatewayPacket.DataMqtt.toTransportPacket(topic: String): TransportPa
   )
 }
 
+fun OutboundGatewayPacket.DataTor.toTransportPacket(): TransportPacket.DataTor {
+  return TransportPacket.DataTor(
+    level2CipherPacket = level2CipherPacket,
+    requestId = requestId
+  )
+}
+
 fun TransportPacket.DataMqtt.toInboundGatewayPacket(): InboundGatewayPacket.Data {
   return InboundGatewayPacket.Data(
     level2CipherPacket = level2CipherPacket,

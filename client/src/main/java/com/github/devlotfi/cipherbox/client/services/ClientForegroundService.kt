@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.github.devlotfi.cipherbox.shared.crypto.SHAUtils
 import com.github.devlotfi.cipherbox.shared.global.JsonInstances
 import com.github.devlotfi.cipherbox.shared.transport.packet.InboundGatewayPacket
 import com.github.devlotfi.cipherbox.shared.transport.packet.OutboundGatewayPacket
@@ -41,7 +42,11 @@ class ClientForegroundService : Service() {
       onConnectedChanged = { isUsbConnected = it },
       onStatusChanged = { usbStatus = it },
       onInboundGatewayPacket = {
-        println("CLIENT Recived by serial: $it")
+        if (it is InboundGatewayPacket.Data) {
+          println("Recived hash: ${SHAUtils.hash(it.level2CipherPacket.mlKemData.encapsulation)}")
+        }
+        val raw = JsonInstances.jsonInstance.encodeToString<InboundGatewayPacket>(it)
+        println("CLIENT Recived by serial: $raw")
         if (it !is InboundGatewayPacket.Ack) {
           val ack = OutboundGatewayPacket.Ack(
             requestId = it.requestId

@@ -21,11 +21,7 @@ class GatewayTorReceiver(
   private val queue = IdentifiedRequestQueue<TransportPacket>()
 
   suspend fun receive(transportPacket: TransportPacket) {
-    if (transportPacket is TransportPacket.Ack) {
-      return
-    } else {
-      queue.enqueue(transportPacket)
-    }
+    if (transportPacket !is TransportPacket.Ack) queue.enqueue(transportPacket)
   }
 
   suspend fun ack(outboundGatewayPacket: OutboundGatewayPacket.Ack) {
@@ -39,31 +35,50 @@ class GatewayTorReceiver(
     loopThread = thread(name = "tor-receiver") {
       while (running) {
         try {
+          queue.drainSignal()
+
           val transportPacket = runBlocking { queue.peek() }
-
           if (transportPacket != null) {
-
             val inboundGatewayPacket = when (transportPacket) {
               is TransportPacket.DataTor -> transportPacket.toInboundGatewayPacket()
               is TransportPacket.DataMqtt -> transportPacket.toInboundGatewayPacket()
-              is TransportPacket.Ack -> return@thread
+              is TransportPacket.Ack -> {
+                runBlocking { queue.dequeue(transportPacket.requestId) }
+                continue
+              }
             }
             val rawInboundGatewayPacket =
               JsonInstances.jsonInstance.encodeToString<InboundGatewayPacket>(inboundGatewayPacket)
-            onBluetoothSend(rawInboundGatewayPacket)
+
+            try {
+              onBluetoothSend(rawInboundGatewayPacket)
+            } catch (e: InterruptedException) {
+              throw e // let the outer catch exit the loop
+            } catch (e: Exception) {
+              e.printStackTrace() // fall through to the wait below
+            }
           }
+
+          runBlocking { queue.awaitEnqueue(RETRY_INTERVAL_MS) }
+        } catch (e: InterruptedException) {
+          break
         } catch (e: Exception) {
           e.printStackTrace()
         }
-
-        Thread.sleep(1000)
       }
     }
   }
 
   fun stop() {
     running = false
-    loopThread?.join()
+    loopThread?.let {
+      it.interrupt() // otherwise join() waits out the remaining retry interval
+      it.join()
+    }
     loopThread = null
+  }
+
+  private companion object {
+    const val RETRY_INTERVAL_MS = 1000L
   }
 }

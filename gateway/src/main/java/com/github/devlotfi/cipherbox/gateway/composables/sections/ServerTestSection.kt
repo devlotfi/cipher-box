@@ -51,11 +51,12 @@ fun ServerTestSection(
     mutateKey = listOf("TEST_SERVER")
     mutateFn { params: Unit ->
       if (GatewayForegroundService.onionAddress == null) return@mutateFn
+      val engine = OkHttp.create {
+        proxy = ProxyBuilder.socks(host = "127.0.0.1", port = 9050)
+      }
       val api = DefaultApi(
         baseUrl = "http://${GatewayForegroundService.onionAddress!!}",
-        httpClientEngine = OkHttp.create {
-          proxy = ProxyBuilder.socks(host = "127.0.0.1", port = 9050)
-        },
+        httpClientEngine = engine,
         httpClientConfig = { config ->
           config.install(ContentNegotiation) {
             json(JsonInstances.jsonInstance)
@@ -64,6 +65,7 @@ fun ServerTestSection(
       )
       val res = api.test()
       println(res.body())
+      engine.close()
     }
     onSuccess {
       localSnackbar.snackbarHostState.showSnackbar("Action successful")

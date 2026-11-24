@@ -23,7 +23,7 @@
 
 package com.github.devlotfi.cipherbox.openapi.apis
 
-import com.github.devlotfi.cipherbox.openapi.models.DATA
+import com.github.devlotfi.cipherbox.openapi.models.SendBody
 import com.github.devlotfi.cipherbox.openapi.models.TestResponse
 
 import com.github.devlotfi.cipherbox.openapi.infrastructure.*
@@ -46,15 +46,15 @@ import io.ktor.http.ParametersBuilder
         * POST /send
         * 
         * 
-         * @param DATA  
+         * @param sendBody  
          * @return TestResponse
         */
             @Suppress("UNCHECKED_CAST")
-        open suspend fun send(DATA: DATA): HttpResponse<TestResponse> {
+        open suspend fun send(sendBody: SendBody): HttpResponse<TestResponse> {
 
             val localVariableAuthNames = listOf<String>()
 
-            val localVariableBody = DATA
+            val localVariableBody = sendBody
 
             val localVariableQuery = mutableMapOf<String, List<String>>()
 

@@ -1,5 +1,6 @@
 package com.github.devlotfi.cipherbox.gateway.ktor
 
+import com.github.devlotfi.cipherbox.shared.global.JsonInstances
 import com.github.devlotfi.cipherbox.shared.transport.packet.TransportPacket
 import io.ktor.http.HttpStatusCode
 import io.ktor.openapi.jsonSchema
@@ -16,6 +17,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TestResponse(
   val status: String = "OK"
+)
+
+@Serializable
+data class SendBody(
+  val rawTransportPacket: String
 )
 
 @OptIn(ExperimentalKtorApi::class)
@@ -36,7 +42,7 @@ fun Application.configureRouting(
 
     post("/send") {
       val body = try {
-        call.receive<TransportPacket.DataTor>()
+        call.receive<SendBody>()
       } catch (e: Exception) {
         call.respond(
           HttpStatusCode.BadRequest,
@@ -45,13 +51,31 @@ fun Application.configureRouting(
         return@post
       }
       println("Received data: ${body}")
-      onTransportPacket(body)
+
+      val transportPacket = try {
+        JsonInstances.jsonInstance.decodeFromString<TransportPacket>(body.rawTransportPacket)
+      } catch (e: Exception) {
+        call.respond(
+          HttpStatusCode.BadRequest,
+          "Invalid packet"
+        )
+        return@post
+      }
+      if (transportPacket !is TransportPacket.DataTor) {
+        call.respond(
+          HttpStatusCode.BadRequest,
+          "Invalid packet"
+        )
+        return@post
+      }
+
+      onTransportPacket(transportPacket)
       call.respond(TestResponse())
     }.describe {
       operationId = "send"
       requestBody {
         required = true
-        schema = jsonSchema<TransportPacket.DataTor>()
+        schema = jsonSchema<SendBody>()
       }
       responses {
         HttpStatusCode.OK {

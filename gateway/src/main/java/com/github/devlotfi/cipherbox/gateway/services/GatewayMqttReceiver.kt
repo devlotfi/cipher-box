@@ -25,6 +25,7 @@ class GatewayMqttReceiver(
   private val queue = IdentifiedRequestQueue<TransportPacket>()
 
   suspend fun receive(transportPacket: TransportPacket) {
+    val topic = currentTopic ?: return
     if (transportPacket is TransportPacket.Ack) {
       val inboundGatewayPacket = transportPacket.toInboundGatewayPacket()
       val rawInboundGatewayPacket =
@@ -37,7 +38,7 @@ class GatewayMqttReceiver(
           TransportPacket.Ack(requestId = transportPacket.requestId)
         val rawAckTransportPacket =
           JsonInstances.jsonInstance.encodeToString<TransportPacket>(ackTransportPacket)
-        onMqttSend(currentTopic!!, rawAckTransportPacket)
+        onMqttSend(topic, rawAckTransportPacket)
       }
     }
   }
@@ -54,32 +55,51 @@ class GatewayMqttReceiver(
     loopThread = thread(name = "mqtt-receiver") {
       while (running) {
         try {
+          queue.drainSignal()
+
           val transportPacket = runBlocking { queue.peek() }
-
           if (transportPacket != null) {
-
             val inboundGatewayPacket = when (transportPacket) {
               is TransportPacket.DataTor -> transportPacket.toInboundGatewayPacket()
               is TransportPacket.DataMqtt -> transportPacket.toInboundGatewayPacket()
-              is TransportPacket.Ack -> return@thread
+              is TransportPacket.Ack -> {
+                runBlocking { queue.dequeue(transportPacket.requestId) }
+                continue
+              }
             }
             val rawInboundGatewayPacket =
               JsonInstances.jsonInstance.encodeToString<InboundGatewayPacket>(inboundGatewayPacket)
-            onBluetoothSend(rawInboundGatewayPacket)
+
+            try {
+              onBluetoothSend(rawInboundGatewayPacket)
+            } catch (e: InterruptedException) {
+              throw e // let the outer catch exit the loop
+            } catch (e: Exception) {
+              e.printStackTrace() // fall through to the wait below
+            }
           }
+
+          runBlocking { queue.awaitEnqueue(RETRY_INTERVAL_MS) }
+        } catch (e: InterruptedException) {
+          break
         } catch (e: Exception) {
           e.printStackTrace()
         }
-
-        Thread.sleep(1000)
       }
     }
   }
 
   fun stop() {
     running = false
-    loopThread?.join()
+    loopThread?.let {
+      it.interrupt() // otherwise join() waits out the remaining retry interval
+      it.join()
+    }
     loopThread = null
     currentTopic = null
+  }
+
+  private companion object {
+    const val RETRY_INTERVAL_MS = 1000L
   }
 }

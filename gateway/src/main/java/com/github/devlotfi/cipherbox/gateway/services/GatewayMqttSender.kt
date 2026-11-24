@@ -30,16 +30,13 @@ class GatewayMqttSender(
     loopThread = thread(name = "mqtt-sender") {
       while (running) {
         try {
-          val outboundGatewayPacket = runBlocking { queue.dequeue() }
-
-          if (outboundGatewayPacket != null) {
-            val transportPacket = outboundGatewayPacket.toTransportPacket(topic)
-            val rawTransportPacket =
-              JsonInstances.jsonInstance.encodeToString<TransportPacket>(transportPacket)
-            onMqttSend(topic, rawTransportPacket)
-          }
-
-          Thread.sleep(1000)
+          val outboundGatewayPacket = runBlocking { queue.dequeueAwait() }
+          val transportPacket = outboundGatewayPacket.toTransportPacket(topic)
+          val rawTransportPacket =
+            JsonInstances.jsonInstance.encodeToString<TransportPacket>(transportPacket)
+          onMqttSend(topic, rawTransportPacket)
+        } catch (e: InterruptedException) {
+          break
         } catch (e: Exception) {
           e.printStackTrace()
         }
@@ -49,7 +46,10 @@ class GatewayMqttSender(
 
   fun stop() {
     running = false
-    loopThread?.join()
+    loopThread?.let {
+      it.interrupt()
+      it.join()
+    }
     loopThread = null
   }
 }
