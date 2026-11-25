@@ -1,5 +1,6 @@
-package com.github.devlotfi.cipherbox.gateway.screens.pin
+package com.github.devlotfi.cipherbox.shared.screens.login
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -13,16 +14,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.LocalNavigation
-import com.github.devlotfi.cipherbox.gateway.R
-import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.composevstore.DataStore
-import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 class ConfirmPinScreenViewModel : ViewModel() {
   val dataStore = DataStore()
@@ -35,14 +34,15 @@ fun ConfirmPinScreen(
   pin: String,
   modifier: Modifier = Modifier,
   viewModel: ConfirmPinScreenViewModel = viewModel(),
+  backStack: NavBackStack<NavKey>,
+  appName: String,
+  @DrawableRes logo: Int
 ) {
-  val localNavigation = LocalNavigation.current
-
   GenericPinScreen(
     modifier = modifier,
     dataStore = viewModel.dataStore,
-    logo = SharedR.drawable.cipher_box_gateway_logo,
-    appName = stringResource(R.string.app_name),
+    logo = logo,
+    appName = appName,
     title = "Confirm PIN",
     titleIcon = {
       Box(
@@ -69,7 +69,7 @@ fun ConfirmPinScreen(
       if (it != pin) {
         viewModel.error = "Pins dont match"
       } else {
-        localNavigation.backStack.add(ScreenNavigationKeys.SetDuressPin(pin = pin))
+        backStack.add(LoginNavigationKeys.SetDuressPin(pin = pin))
       }
     }
   )

@@ -2,6 +2,7 @@ package com.github.devlotfi.cipherbox.gateway.screens
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.global.AppQueryCache
+import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
 import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberQuery
@@ -47,18 +49,19 @@ fun InitScreen(
 
       val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
       if (exists) {
-//        // for dev only
-//        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-//          localLoginDb.loginDbManager.init(context)
-//          localSqlCipherDb.sqlCipherDbManager.init(
-//            context,
-//            "test"
-//          )
-//          localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
-//          return@queryFn
-//        }
+        // for dev only
+        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+          localLoginDb.loginDbManager.init(context)
+          localSqlCipherDb.sqlCipherDbManager.init(
+            context,
+            "test"
+          )
+          localNavigation.backStack.clear()
+          localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
+          return@queryFn
+        }
 
-        localNavigation.backStack.add(ScreenNavigationKeys.Pin)
+        localNavigation.backStack.add(LoginNavigationKeys.Pin)
       } else {
         localNavigation.backStack.add(ScreenNavigationKeys.Welcome)
       }

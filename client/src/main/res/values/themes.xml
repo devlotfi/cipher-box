@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-  <style name="Theme.CipherBox" parent="android:Theme.Material.Light.NoActionBar" />
-
-  <style name="Theme.CipherBox.Splash" parent="Theme.SplashScreen">
+  <style name="Theme.CipherBox.Splash.Default" parent="Theme.SplashScreen">
     <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
 
     <item name="windowSplashScreenAnimatedIcon">@drawable/cipher_box_splash_anim</item>

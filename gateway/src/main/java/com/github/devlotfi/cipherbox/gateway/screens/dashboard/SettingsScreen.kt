@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,9 +26,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.services.GatewayForegroundService
+import com.github.devlotfi.cipherbox.shared.composables.AppIconSelector
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.composables.SectionTitle
 import com.github.devlotfi.cipherbox.shared.composables.ValidatedOutlinedSecureTextField
@@ -165,106 +168,133 @@ fun SettingsScreen(
     modifier = modifier
       .fillMaxSize()
       .verticalScroll(scrollState)
-      .padding(horizontal = 10.dp)
       .padding(top = 20.dp, bottom = 50.dp)
   ) {
-    SectionTitle(
-      text = "Tor Settings",
-      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.tor
-    )
-
-    ValidatedOutlinedTextField(
-      textFormFieldData = form.torRc,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.torRc)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 5),
-      label = { Text("Tor Config") },
-    )
-
-    SectionTitle(
-      text = "Bluetooth Settings",
-      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.bluetooth
-    )
-
-    ValidatedOutlinedSecureTextField(
-      textFormFieldData = form.bluetoothMac,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.bluetoothMac)
-        .fillMaxWidth(),
-      label = { Text("ESP32 Bluetooth mac") },
-    )
-
-    SectionTitle(
-      text = "MQTT Settings",
-      imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.mqtt
-    )
-
-    ValidatedOutlinedTextField(
-      textFormFieldData = form.mqttHost,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.mqttHost)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
-      label = { Text("MQTT Host") },
-    )
-
-    ValidatedOutlinedTextField(
-      textFormFieldData = form.mqttPort,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.mqttPort)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
-      keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-      label = { Text("MQTT port") },
-    )
-
-    ValidatedOutlinedTextField(
-      textFormFieldData = form.mqttUsername,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.mqttUsername)
-        .fillMaxWidth(),
-      lineLimits = TextFieldLineLimits.SingleLine,
-      label = { Text("MQTT Username") },
-    )
-
-    ValidatedOutlinedSecureTextField(
-      textFormFieldData = form.mqttPassword,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.mqttPassword)
-        .fillMaxWidth(),
-      label = { Text("MQTT Password") },
-    )
-
-    ValidatedOutlinedSecureTextField(
-      textFormFieldData = form.mqttTopic,
-      enableCopyButton = true,
-      shape = RoundedCornerShape(15.dp),
-      modifier = Modifier
-        .onBlur(form.mqttTopic)
-        .fillMaxWidth(),
-      label = { Text("MQTT Topic") },
-    )
-
-    Button(
-      shape = RoundedCornerShape(15.dp),
-      enabled = !saveSettingsMutation.loading,
-      modifier = Modifier.fillMaxWidth(),
-      onClick = { if (form.validate()) saveSettingsMutation.mutate(Unit) },
+    Column(
+      modifier = modifier
+        .padding(horizontal = 10.dp)
+        .padding(bottom = 20.dp)
     ) {
-      Text("Save", modifier = Modifier.padding(7.dp))
+      SectionTitle(
+        text = "Tor Settings",
+        imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.tor
+      )
+
+      ValidatedOutlinedTextField(
+        textFormFieldData = form.torRc,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.torRc)
+          .fillMaxWidth(),
+        lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 5),
+        label = { Text("Tor Config") },
+      )
+
+      SectionTitle(
+        text = "Bluetooth Settings",
+        imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.bluetooth
+      )
+
+      ValidatedOutlinedSecureTextField(
+        textFormFieldData = form.bluetoothMac,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.bluetoothMac)
+          .fillMaxWidth(),
+        label = { Text("ESP32 Bluetooth mac") },
+      )
+
+      SectionTitle(
+        text = "MQTT Settings",
+        imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.mqtt
+      )
+
+      ValidatedOutlinedTextField(
+        textFormFieldData = form.mqttHost,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.mqttHost)
+          .fillMaxWidth(),
+        lineLimits = TextFieldLineLimits.SingleLine,
+        label = { Text("MQTT Host") },
+      )
+
+      ValidatedOutlinedTextField(
+        textFormFieldData = form.mqttPort,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.mqttPort)
+          .fillMaxWidth(),
+        lineLimits = TextFieldLineLimits.SingleLine,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        label = { Text("MQTT port") },
+      )
+
+      ValidatedOutlinedTextField(
+        textFormFieldData = form.mqttUsername,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.mqttUsername)
+          .fillMaxWidth(),
+        lineLimits = TextFieldLineLimits.SingleLine,
+        label = { Text("MQTT Username") },
+      )
+
+      ValidatedOutlinedSecureTextField(
+        textFormFieldData = form.mqttPassword,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.mqttPassword)
+          .fillMaxWidth(),
+        label = { Text("MQTT Password") },
+      )
+
+      ValidatedOutlinedSecureTextField(
+        textFormFieldData = form.mqttTopic,
+        enableCopyButton = true,
+        shape = RoundedCornerShape(15.dp),
+        modifier = Modifier
+          .onBlur(form.mqttTopic)
+          .fillMaxWidth(),
+        label = { Text("MQTT Topic") },
+      )
+
+      Button(
+        shape = RoundedCornerShape(15.dp),
+        enabled = !saveSettingsMutation.loading,
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { if (form.validate()) saveSettingsMutation.mutate(Unit) },
+      ) {
+        Text("Save", modifier = Modifier.padding(7.dp))
+      }
+    }
+
+    HorizontalDivider()
+
+    Column() {
+      SectionTitle(
+        text = "Camouflage Settings",
+        imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.widgets,
+        modifier = Modifier
+          .padding(horizontal = 10.dp)
+          .padding(top = 20.dp)
+      )
+
+      AppIconSelector(
+        modifier = Modifier
+          .padding(horizontal = 10.dp)
+          .padding(top = 20.dp),
+        defaultIcon = R.drawable.cipher_box_gateway_logo,
+        defaultSplashTheme = R.style.Theme_CipherBox_Splash_Default,
+        dataStore = viewModel.dataStore,
+        coroutineScope = viewModel.viewModelScope
+      )
     }
   }
 }

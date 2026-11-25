@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.shared.transport.packet.OutboundGatewayPacket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
-import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 /**
  * Owns the foreground notification, the command queue and the busy state.
@@ -265,7 +265,7 @@ class GatewayForegroundService : Service() {
     val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
       .setContentTitle("Gateway running")
       .setContentText("Gateway services are active")
-      .setSmallIcon(SharedR.drawable.cipher_box_gateway_logo)
+      .setSmallIcon(R.drawable.cipher_box_gateway_logo)
       .setOngoing(true)
       .build()
 

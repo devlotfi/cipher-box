@@ -33,7 +33,6 @@ import com.github.devlotfi.cipherbox.shared.icons.outlined.info
 import com.github.devlotfi.cipherbox.shared.icons.outlined.settings
 import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
 import kotlinx.serialization.Serializable
-import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 sealed interface DashboardNavigationKeys {
   @Serializable
@@ -86,7 +85,7 @@ fun DashboardScreen(
     topBar = {
       SimpleTopBar(
         appName = stringResource(R.string.app_name),
-        logo = SharedR.drawable.cipher_box_gateway_logo
+        logo = R.drawable.cipher_box_gateway_logo
       )
     },
     bottomBar = {

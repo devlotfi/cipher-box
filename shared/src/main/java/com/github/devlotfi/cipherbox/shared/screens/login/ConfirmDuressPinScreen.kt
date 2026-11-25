@@ -1,5 +1,7 @@
-package com.github.devlotfi.cipherbox.gateway.screens.pin
+package com.github.devlotfi.cipherbox.shared.screens.login
 
+import android.content.pm.ApplicationInfo
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -15,18 +17,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.devlotfi.cipherbox.gateway.LocalNavigation
-import com.github.devlotfi.cipherbox.gateway.R
-import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
+import com.github.devlotfi.cipherbox.shared.data.logindata.LoginDataEntity
 import com.github.devlotfi.cipherbox.shared.global.KeyStoreKeyAliases
+import com.github.devlotfi.cipherbox.shared.icons.outlined.delete_forever
+import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
 import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreAuthenticator
@@ -36,109 +38,98 @@ import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberMutation
 import com.github.devlotfi.composevstore.DataStore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.example.utils.ARGON2IDUtils
-import kotlin.time.Duration.Companion.milliseconds
-import com.github.devlotfi.cipherbox.shared.R as SharedR
 
-class PinScreenViewModel : ViewModel() {
+class ConfirmDuressPinScreenViewModel : ViewModel() {
   val dataStore = DataStore()
   val queryCache = QueryCache()
   val queryClient = QueryClient(viewModelScope, queryCache)
   var error by mutableStateOf<String?>(null)
 }
 
-data class VerifyPinMutationParams(
-  val pin: String
-)
-
-data class InitSqlCipherDbMutationParams(
-  val password: String
-)
-
 @Composable
-fun PinScreen(
+fun ConfirmDuressPinScreen(
+  pin: String,
+  duressPin: String,
   modifier: Modifier = Modifier,
-  viewModel: PinScreenViewModel = viewModel(),
+  viewModel: ConfirmDuressPinScreenViewModel = viewModel(),
+  backStack: NavBackStack<NavKey>,
+  setupSqlCipherDb: suspend (password: String) -> Unit,
+  closeSqlCipherDb: suspend () -> Unit,
+  appName: String,
+  @DrawableRes logo: Int
 ) {
   val context = LocalContext.current
   val activity = context as FragmentActivity
   val localLoginDb = LocalLoginDb.current
-  val localSqlCipherDb = LocalSqlCipherDb.current
-  val localNavigation = LocalNavigation.current
   val authenticator = remember { KeyStoreAuthenticator(activity) }
   val sqlCipherDbKey = remember { KeyStoreManager(KeyStoreKeyAliases.SQLCIPHER_DB_KEY) }
 
-  val initSqlCipherDbMutation = viewModel.queryClient.rememberMutation {
-    mutateKey = listOf("INIT_SQLCIPHER")
-    mutateFn { params: InitSqlCipherDbMutationParams ->
-      localSqlCipherDb.sqlCipherDbManager.init(context, params.password)
+  val saveKeyGenResultMutation = viewModel.queryClient.rememberMutation {
+    mutateKey = listOf("SAVE_KEY_GEN_RESULT")
+    mutateFn { params: LoginDataEntity ->
+      if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
+      localLoginDb.loginDbManager.db?.loginDataDao()?.save(
+        params
+      )
+      closeSqlCipherDb()
+      localLoginDb.loginDbManager.close()
     }
     onSuccess {
-      println("SqlCipher init success")
-      localNavigation.backStack.clear()
-      localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
+      println("Save key gen success")
+      backStack.clear()
+      backStack.add(LoginNavigationKeys.Pin)
     }
-    onError {
+    onError = {
       it.printStackTrace()
       viewModel.error = "An error occured"
     }
   }
 
-  val verifyPinMutation = viewModel.queryClient.rememberMutation {
-    mutateKey = listOf("VERIFY_PIN")
-    mutateFn { params: VerifyPinMutationParams ->
-      localLoginDb.loginDbManager.init(context)
-      if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
-      val appData =
-        localLoginDb.loginDbManager.db!!.loginDataDao().get() ?: throw Exception("Error")
+  val keyGenMutation = viewModel.queryClient.rememberMutation {
+    mutateKey = listOf("KEY_GEN")
+    mutateFn { params: Unit ->
+      val sqlCipherPassword =
+        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+          "test"
+        } else AESGCMUtils.generateKey()
+      println("password: ${sqlCipherPassword}")
 
-      if (params.pin == appData.duressPin) {
-        try {
-          localLoginDb.loginDbManager.delete(context)
-        } catch (e: Exception) {
-        }
-        try {
-          localSqlCipherDb.sqlCipherDbManager.delete(context)
-        } catch (e: Exception) {
-        }
-        try {
-          sqlCipherDbKey.delete()
-        } catch (e: Exception) {
-        }
-        delay(2000.milliseconds)
-        activity.finish()
-      }
+      setupSqlCipherDb(sqlCipherPassword)
+
+      localLoginDb.loginDbManager.delete(context)
+      localLoginDb.loginDbManager.init(context)
+
+      val salt = ARGON2IDUtils.generateSalt()
 
       val pinAesKey = withContext(Dispatchers.Default) {
-        val aesKey = ARGON2IDUtils.deriveKey(params.pin, appData.argon2IdData.salt)
+        val aesKey = ARGON2IDUtils.deriveKey(pin, salt)
         return@withContext aesKey
       }
 
-      val encrypted = KeyStoreManager.AesGcmEncryptedData(
-        ciphertext = appData.aesGcmData.ciphertext,
-        iv = appData.aesGcmData.ketStoreIv
-      )
-      val cipher = sqlCipherDbKey.createDecryptionCipher(encrypted)
+      val pinEncryptionResult = AESGCMUtils.encrypt(sqlCipherPassword, pinAesKey)
+      val cipher = sqlCipherDbKey.createEncryptionCipher()
       authenticator.authenticate(
         cipher = cipher,
         onSuccess = { authenticatedCipher ->
           try {
-            val decryptedKeystore = sqlCipherDbKey.decrypt(
-              encrypted,
+            val encrypted = sqlCipherDbKey.encrypt(
+              pinEncryptionResult.ciphertext,
               authenticatedCipher
             )
-            val sqlCipherPassword = AESGCMUtils.decrypt(
-              ciphertext = decryptedKeystore,
-              iv = appData.aesGcmData.pinIv,
-              key = pinAesKey
-            )
-            initSqlCipherDbMutation.mutate(
-              InitSqlCipherDbMutationParams(
-                password = sqlCipherPassword
+            val loginDataEntity = LoginDataEntity(
+              duressPin = duressPin,
+              aesGcmData = LoginDataEntity.AesGcmData(
+                ciphertext = encrypted.ciphertext,
+                pinIv = pinEncryptionResult.iv,
+                ketStoreIv = encrypted.iv
+              ),
+              argon2IdData = LoginDataEntity.Argon2IdData(
+                salt = salt
               )
             )
+            saveKeyGenResultMutation.mutate(loginDataEntity)
           } catch (e: Exception) {
             e.printStackTrace()
             viewModel.error = "An error occured"
@@ -151,33 +142,33 @@ fun PinScreen(
       )
     }
     onSuccess {
-      println("Key verification success")
+      println("Key gen success")
     }
-    onError {
+    onError = {
       it.printStackTrace()
-      viewModel.error = "An error occure"
+      viewModel.error = "An error occured"
     }
   }
 
   GenericPinScreen(
     modifier = modifier,
     dataStore = viewModel.dataStore,
-    logo = SharedR.drawable.cipher_box_gateway_logo,
-    appName = stringResource(R.string.app_name),
-    title = "Enter PIN",
+    logo = logo,
+    appName = appName,
+    title = "Confirm Duress PIN",
     titleIcon = {
       Box(
         modifier = Modifier
           .size(40.dp)
           .clip(RoundedCornerShape(10.dp))
-          .background(MaterialTheme.colorScheme.primary),
+          .background(MaterialTheme.colorScheme.error),
         contentAlignment = Alignment.Center
       ) {
         Icon(
-          com.github.devlotfi.cipherbox.shared.icons.outlined.lock,
+          delete_forever,
           contentDescription = null,
           modifier = Modifier.size(30.dp),
-          tint = MaterialTheme.colorScheme.onPrimary
+          tint = MaterialTheme.colorScheme.onError
         )
       }
     },
@@ -185,14 +176,13 @@ fun PinScreen(
     clearError = {
       viewModel.error = null
     },
-    loading = verifyPinMutation.loading || initSqlCipherDbMutation.loading,
+    loading = keyGenMutation.loading || saveKeyGenResultMutation.loading,
     onPin = {
-      println(it)
-      verifyPinMutation.mutate(
-        VerifyPinMutationParams(
-          pin = it
-        )
-      )
+      if (it != duressPin) {
+        viewModel.error = "Duress pins dont match"
+      } else {
+        keyGenMutation.mutate(Unit)
+      }
     }
   )
 }

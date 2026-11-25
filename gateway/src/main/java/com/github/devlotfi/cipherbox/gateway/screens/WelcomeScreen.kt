@@ -28,8 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.devlotfi.cipherbox.gateway.LocalNavigation
-import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
-import com.github.devlotfi.cipherbox.shared.R as SharedR
+import com.github.devlotfi.cipherbox.gateway.R
+import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
 
 @Composable
 fun WelcomeScreen(
@@ -71,7 +71,7 @@ fun WelcomeScreen(
           verticalArrangement = Arrangement.Center
         ) {
           Icon(
-            painter = painterResource(SharedR.drawable.cipher_box_gateway_logo),
+            painter = painterResource(R.drawable.cipher_box_gateway_logo),
             contentDescription = null,
             modifier = Modifier.size(150.dp),
             tint = MaterialTheme.colorScheme.onBackground
@@ -103,7 +103,7 @@ fun WelcomeScreen(
           modifier = Modifier.fillMaxWidth(),
           onClick = {
             localNavigation.backStack.clear()
-            localNavigation.backStack.add(ScreenNavigationKeys.SetPin)
+            localNavigation.backStack.add(LoginNavigationKeys.SetPin)
           },
           shape = RoundedCornerShape(10.dp)
         ) {

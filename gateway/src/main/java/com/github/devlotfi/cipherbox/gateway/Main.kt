@@ -13,7 +13,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -21,16 +23,20 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
+import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.gateway.screens.DeviceNotSecureScreen
 import com.github.devlotfi.cipherbox.gateway.screens.InitScreen
 import com.github.devlotfi.cipherbox.gateway.screens.WelcomeScreen
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.DashboardScreen
-import com.github.devlotfi.cipherbox.gateway.screens.pin.ConfirmDuressPinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.pin.ConfirmPinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.pin.PinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.pin.SetDuressPinScreen
-import com.github.devlotfi.cipherbox.gateway.screens.pin.SetPinScreen
+import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
+import com.github.devlotfi.cipherbox.shared.screens.login.ConfirmDuressPinScreen
+import com.github.devlotfi.cipherbox.shared.screens.login.ConfirmPinScreen
+import com.github.devlotfi.cipherbox.shared.screens.login.PinScreen
+import com.github.devlotfi.cipherbox.shared.screens.login.SetDuressPinScreen
+import com.github.devlotfi.cipherbox.shared.screens.login.SetPinScreen
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 sealed interface ScreenNavigationKeys {
   @Serializable
@@ -41,21 +47,6 @@ sealed interface ScreenNavigationKeys {
 
   @Serializable
   data object Welcome : NavKey
-
-  @Serializable
-  data object Pin : NavKey
-
-  @Serializable
-  data object SetPin : NavKey
-
-  @Serializable
-  data class ConfirmPin(val pin: String) : NavKey
-
-  @Serializable
-  data class SetDuressPin(val pin: String) : NavKey
-
-  @Serializable
-  data class ConfirmDuressPin(val pin: String, val duressPin: String) : NavKey
 
   @Serializable
   data object Dashboard : NavKey
@@ -70,7 +61,9 @@ val LocalNavigation = compositionLocalOf<LocalScreenNavigationData> { error("Not
 
 @Composable
 fun Main(modifier: Modifier = Modifier) {
+  val context = LocalContext.current
   val focusManager = LocalFocusManager.current
+  val localSqlCipherDb = LocalSqlCipherDb.current
   val backStack = rememberNavBackStack(ScreenNavigationKeys.Init)
 
   Column(
@@ -102,38 +95,76 @@ fun Main(modifier: Modifier = Modifier) {
           }
 
           entry<ScreenNavigationKeys.DeviceNotSecure> {
-            DeviceNotSecureScreen(
-            )
+            DeviceNotSecureScreen()
           }
 
           entry<ScreenNavigationKeys.Welcome> {
             WelcomeScreen()
           }
 
-          entry<ScreenNavigationKeys.Pin> {
-            PinScreen()
+          entry<LoginNavigationKeys.Pin> {
+            PinScreen(
+              appName = stringResource(R.string.app_name),
+              logo = R.drawable.cipher_box_gateway_logo,
+              backStack = backStack,
+              initSqlcipherDb = {
+                localSqlCipherDb.sqlCipherDbManager.init(context, it)
+              },
+              deleteSqlcipherDb = {
+                localSqlCipherDb.sqlCipherDbManager.delete(context)
+              },
+              onSuccess = {
+                backStack.add(ScreenNavigationKeys.Dashboard)
+              }
+            )
           }
 
-          entry<ScreenNavigationKeys.SetPin> {
-            SetPinScreen()
+          entry<LoginNavigationKeys.SetPin> {
+            SetPinScreen(
+              appName = stringResource(R.string.app_name),
+              logo = R.drawable.cipher_box_gateway_logo,
+              backStack = backStack
+            )
           }
 
-          entry<ScreenNavigationKeys.ConfirmPin> { key ->
+          entry<LoginNavigationKeys.ConfirmPin> { key ->
             ConfirmPinScreen(
-              pin = key.pin
-            )
-          }
-
-          entry<ScreenNavigationKeys.SetDuressPin> { key ->
-            SetDuressPinScreen(
-              pin = key.pin
-            )
-          }
-
-          entry<ScreenNavigationKeys.ConfirmDuressPin> { key ->
-            ConfirmDuressPinScreen(
+              appName = stringResource(R.string.app_name),
+              logo = R.drawable.cipher_box_gateway_logo,
               pin = key.pin,
-              duressPin = key.duressPin
+              backStack = backStack
+            )
+          }
+
+          entry<LoginNavigationKeys.SetDuressPin> { key ->
+            SetDuressPinScreen(
+              appName = stringResource(R.string.app_name),
+              logo = R.drawable.cipher_box_gateway_logo,
+              pin = key.pin,
+              backStack = backStack
+            )
+          }
+
+          entry<LoginNavigationKeys.ConfirmDuressPin> { key ->
+            ConfirmDuressPinScreen(
+              appName = stringResource(R.string.app_name),
+              logo = R.drawable.cipher_box_gateway_logo,
+              pin = key.pin,
+              duressPin = key.duressPin,
+              backStack = backStack,
+              setupSqlCipherDb = {
+                localSqlCipherDb.sqlCipherDbManager.delete(context)
+                localSqlCipherDb.sqlCipherDbManager.init(context, it)
+                if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("Missing db")
+                localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
+                  SettingsEntity(
+                    mqttTopic = UUID.randomUUID().toString()
+                  )
+                )
+              },
+              closeSqlCipherDb = {
+                localSqlCipherDb.sqlCipherDbManager.close()
+              }
             )
           }
 
