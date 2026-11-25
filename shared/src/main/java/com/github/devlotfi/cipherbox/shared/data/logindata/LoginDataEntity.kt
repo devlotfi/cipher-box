@@ -10,6 +10,7 @@ data class LoginDataEntity(
   @PrimaryKey
   val rowId: Int = SINGLETON_ID,
   val duressPin: String,
+  val camouflagePin: String? = null,
   val aesGcmData: AesGcmData,
   val argon2IdData: Argon2IdData
 ) {

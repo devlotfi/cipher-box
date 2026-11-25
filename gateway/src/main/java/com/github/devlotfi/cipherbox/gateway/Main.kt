@@ -25,11 +25,12 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
-import com.github.devlotfi.cipherbox.gateway.screens.DeviceNotSecureScreen
 import com.github.devlotfi.cipherbox.gateway.screens.InitScreen
 import com.github.devlotfi.cipherbox.gateway.screens.WelcomeScreen
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.DashboardScreen
 import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
+import com.github.devlotfi.cipherbox.shared.screens.DeviceNotSecureScreen
+import com.github.devlotfi.cipherbox.shared.screens.login.CalculatorCamouflageScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.ConfirmDuressPinScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.ConfirmPinScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.PinScreen
@@ -41,9 +42,6 @@ import java.util.UUID
 sealed interface ScreenNavigationKeys {
   @Serializable
   data object Init : NavKey
-
-  @Serializable
-  data object DeviceNotSecure : NavKey
 
   @Serializable
   data object Welcome : NavKey
@@ -91,11 +89,19 @@ fun Main(modifier: Modifier = Modifier) {
         ),
         entryProvider = entryProvider {
           entry<ScreenNavigationKeys.Init> {
-            InitScreen()
+            InitScreen(
+              backStack = backStack
+            )
           }
 
-          entry<ScreenNavigationKeys.DeviceNotSecure> {
+          entry<LoginNavigationKeys.DeviceNotSecure> {
             DeviceNotSecureScreen()
+          }
+
+          entry<LoginNavigationKeys.CalculatorCamouflageScreen> {
+            CalculatorCamouflageScreen(
+              backStack = backStack
+            )
           }
 
           entry<ScreenNavigationKeys.Welcome> {
@@ -155,8 +161,8 @@ fun Main(modifier: Modifier = Modifier) {
               setupSqlCipherDb = {
                 localSqlCipherDb.sqlCipherDbManager.delete(context)
                 localSqlCipherDb.sqlCipherDbManager.init(context, it)
-                if (localSqlCipherDb.sqlCipherDbManager.db == null) throw Exception("Missing db")
-                localSqlCipherDb.sqlCipherDbManager.db!!.settingsDao().save(
+                val sqlCipherDB = requireNotNull(localSqlCipherDb.sqlCipherDbManager.db)
+                sqlCipherDB.settingsDao().save(
                   SettingsEntity(
                     mqttTopic = UUID.randomUUID().toString()
                   )

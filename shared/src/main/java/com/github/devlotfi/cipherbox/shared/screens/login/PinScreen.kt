@@ -91,9 +91,9 @@ fun PinScreen(
     mutateKey = listOf("VERIFY_PIN")
     mutateFn { params: VerifyPinMutationParams ->
       localLoginDb.loginDbManager.init(context)
-      if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
+      val loginDb = requireNotNull(localLoginDb.loginDbManager.db)
       val appData =
-        localLoginDb.loginDbManager.db!!.loginDataDao().get() ?: throw Exception("Error")
+        loginDb.loginDataDao().get() ?: throw Exception("Error")
 
       if (params.pin == appData.duressPin) {
         try {

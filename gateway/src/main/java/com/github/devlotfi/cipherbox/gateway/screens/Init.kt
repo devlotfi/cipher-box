@@ -2,7 +2,6 @@ package com.github.devlotfi.cipherbox.gateway.screens
 
 import android.app.KeyguardManager
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,6 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import com.github.devlotfi.cipherbox.gateway.LocalNavigation
 import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
@@ -20,6 +21,8 @@ import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.global.AppQueryCache
 import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
 import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
+import com.github.devlotfi.cipherbox.shared.utils.AppIcon
+import com.github.devlotfi.cipherbox.shared.utils.CamouflageManager
 import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberQuery
 
@@ -30,7 +33,8 @@ class InitViewModel : ViewModel() {
 @Composable
 fun InitScreen(
   modifier: Modifier = Modifier,
-  viewModel: InitViewModel = viewModel()
+  viewModel: InitViewModel = viewModel(),
+  backStack: NavBackStack<NavKey>
 ) {
   val context = LocalContext.current
   val localLoginDb = LocalLoginDb.current
@@ -42,29 +46,52 @@ fun InitScreen(
   viewModel.queryClient.rememberQuery {
     queryKey = listOf("INIT")
     queryFn {
-      if (!keyguardManager.isDeviceSecure) {
-        localNavigation.backStack.add(ScreenNavigationKeys.DeviceNotSecure)
+      localLoginDb.loginDbManager.init(context)
+      val loginDb = requireNotNull(localLoginDb.loginDbManager.db)
+      val loginDataEntity = loginDb.loginDataDao().get()
+      val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
+      val currentIcon = CamouflageManager.getCurrentIcon(context)
+
+      if (exists && loginDataEntity?.camouflagePin != null) {
+        when (currentIcon) {
+          AppIcon.CALCULATOR -> {
+            backStack.clear()
+            backStack.add(LoginNavigationKeys.CalculatorCamouflageScreen)
+          }
+
+          else -> {}
+        }
+      }
+
+      if (exists) {
+        if (!keyguardManager.isDeviceSecure) {
+          localNavigation.backStack.add(LoginNavigationKeys.DeviceNotSecure)
+          return@queryFn
+        }
+        localNavigation.backStack.add(LoginNavigationKeys.Pin)
+        return@queryFn
+      } else {
+        if (!keyguardManager.isDeviceSecure) {
+          localNavigation.backStack.add(LoginNavigationKeys.DeviceNotSecure)
+          return@queryFn
+        }
+        localNavigation.backStack.add(ScreenNavigationKeys.Welcome)
         return@queryFn
       }
 
-      val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
-      if (exists) {
-        // for dev only
-        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-          localLoginDb.loginDbManager.init(context)
-          localSqlCipherDb.sqlCipherDbManager.init(
-            context,
-            "test"
-          )
-          localNavigation.backStack.clear()
-          localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
-          return@queryFn
-        }
 
-        localNavigation.backStack.add(LoginNavigationKeys.Pin)
-      } else {
-        localNavigation.backStack.add(ScreenNavigationKeys.Welcome)
-      }
+      // for dev only
+//        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+//          localLoginDb.loginDbManager.init(context)
+//          localSqlCipherDb.sqlCipherDbManager.init(
+//            context,
+//            "test"
+//          )
+//          localNavigation.backStack.clear()
+//          localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
+//          return@queryFn
+//        }
+
     }
   }
 

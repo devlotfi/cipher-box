@@ -69,8 +69,8 @@ fun ConfirmDuressPinScreen(
   val saveKeyGenResultMutation = viewModel.queryClient.rememberMutation {
     mutateKey = listOf("SAVE_KEY_GEN_RESULT")
     mutateFn { params: LoginDataEntity ->
-      if (localLoginDb.loginDbManager.db == null) throw Exception("Error")
-      localLoginDb.loginDbManager.db?.loginDataDao()?.save(
+      val loginDb = requireNotNull(localLoginDb.loginDbManager.db)
+      loginDb.loginDataDao().save(
         params
       )
       closeSqlCipherDb()

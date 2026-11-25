@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.screens
+package com.github.devlotfi.cipherbox.shared.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.devlotfi.cipherbox.shared.icons.outlined.encrypted_off
 
 @Composable
 fun DeviceNotSecureScreen(
@@ -65,7 +66,7 @@ fun DeviceNotSecureScreen(
         ) {
 
           Icon(
-            imageVector = com.github.devlotfi.cipherbox.shared.icons.outlined.encrypted_off,
+            imageVector = encrypted_off,
             contentDescription = null,
             modifier = Modifier.size(180.dp),
             tint = MaterialTheme.colorScheme.primary

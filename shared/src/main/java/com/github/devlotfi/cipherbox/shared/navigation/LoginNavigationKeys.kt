@@ -18,4 +18,10 @@ sealed interface LoginNavigationKeys {
 
   @Serializable
   data class ConfirmDuressPin(val pin: String, val duressPin: String) : NavKey
+
+  @Serializable
+  data object CalculatorCamouflageScreen : NavKey
+
+  @Serializable
+  data object DeviceNotSecure : NavKey
 }

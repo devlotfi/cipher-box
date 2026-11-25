@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.annotation.StyleRes
 
-object AppIconManager {
+object CamouflageManager {
   fun getCurrentIcon(context: Context): AppIcon {
     val pm = context.packageManager
     return AppIcon.entries.firstOrNull {
@@ -44,5 +44,8 @@ object AppIconManager {
   }
 
   private fun component(context: Context, icon: AppIcon) =
-    ComponentName(context.packageName, "${context.packageName}${icon.aliasName}")
+    ComponentName(
+      context.packageName,
+      "${context.packageName}${icon.aliasName}"
+    )
 }
