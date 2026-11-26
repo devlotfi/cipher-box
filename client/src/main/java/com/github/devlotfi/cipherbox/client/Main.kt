@@ -1,6 +1,5 @@
 package com.github.devlotfi.cipherbox.client
 
-import android.content.pm.ApplicationInfo
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -25,8 +24,9 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.github.devlotfi.cipherbox.client.providers.LocalSqlCipherDb
-import com.github.devlotfi.cipherbox.client.screens.DashboardScreen
 import com.github.devlotfi.cipherbox.client.screens.WelcomeScreen
+import com.github.devlotfi.cipherbox.client.screens.dashboard.DashboardScreen
+import com.github.devlotfi.cipherbox.client.screens.messages.MessagesAppScreen
 import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
 import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.cipherbox.shared.screens.DeviceNotSecureScreen
@@ -45,6 +45,9 @@ sealed interface ScreenNavigationKeys {
 
   @Serializable
   data object Dashboard : NavKey
+
+  @Serializable
+  data object MessagesApp : NavKey
 }
 
 data class LocalScreenNavigationData(
@@ -97,15 +100,13 @@ fun Main(modifier: Modifier = Modifier) {
               },
               devInit = {
                 val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
-                if (exists && (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                  localLoginDb.loginDbManager.init(context)
-                  localSqlCipherDb.sqlCipherDbManager.init(
-                    context,
-                    "test"
-                  )
-                  backStack.clear()
-                  backStack.add(ScreenNavigationKeys.Dashboard)
-                }
+                localLoginDb.loginDbManager.init(context)
+                localSqlCipherDb.sqlCipherDbManager.init(
+                  context,
+                  "test"
+                )
+                backStack.clear()
+                backStack.add(ScreenNavigationKeys.Dashboard)
               }
             )
           }
@@ -187,6 +188,10 @@ fun Main(modifier: Modifier = Modifier) {
 
           entry<ScreenNavigationKeys.Dashboard> {
             DashboardScreen()
+          }
+
+          entry<ScreenNavigationKeys.MessagesApp> {
+            MessagesAppScreen()
           }
         },
         transitionSpec = {

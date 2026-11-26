@@ -87,6 +87,22 @@ fun ControlSection(
       ) {
         StatusCard(
           modifier = Modifier.weight(1f),
+          title = "Service",
+          status = when {
+            GatewayForegroundService.busyTokens.contains(GatewayForegroundService.Busy.RESTARTING) -> CardStatus.RESTARTING
+            GatewayForegroundService.isForegroundServiceActive -> CardStatus.ACTIVE
+            else -> CardStatus.INACTIVE
+          },
+          icon = com.github.devlotfi.cipherbox.shared.icons.outlined.memory,
+        )
+      }
+      Row(
+        modifier = Modifier
+          .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+      ) {
+        StatusCard(
+          modifier = Modifier.weight(1f),
           title = "Server",
           status = when {
             GatewayForegroundService.busyTokens.contains(GatewayForegroundService.Busy.RESTARTING) -> CardStatus.RESTARTING

@@ -2,6 +2,7 @@ package com.github.devlotfi.cipherbox.shared.screens.login
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -51,7 +52,10 @@ fun InitScreen(
       val currentIcon = CamouflageManager.getCurrentIcon(context)
 
       // for dev only
-      devInit()
+      if (exists && (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+        devInit()
+        return@queryFn
+      }
 
       if (exists && loginDataEntity?.camouflagePin != null) {
         when (currentIcon) {

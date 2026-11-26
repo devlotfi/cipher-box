@@ -1,7 +1,6 @@
 package com.github.devlotfi.cipherbox.gateway.screens.dashboard
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.isImeVisible
@@ -14,14 +13,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -29,8 +26,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.github.devlotfi.cipherbox.gateway.R
 import com.github.devlotfi.cipherbox.shared.composables.SimpleTopBar
-import com.github.devlotfi.cipherbox.shared.icons.outlined.info
-import com.github.devlotfi.cipherbox.shared.icons.outlined.settings
 import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
 import kotlinx.serialization.Serializable
 
@@ -42,12 +37,6 @@ sealed interface DashboardNavigationKeys {
   data object Settings : NavKey
 }
 
-data class LocalDashboardNavigationData(
-  val backStack: NavBackStack<NavKey>
-)
-
-val LocalNavigation = compositionLocalOf<LocalDashboardNavigationData> { error("Not init") }
-
 
 enum class DashboardTabData(
   val navKey: NavKey,
@@ -58,18 +47,17 @@ enum class DashboardTabData(
   Info(
     navKey = DashboardNavigationKeys.Info,
     label = R.string.info,
-    icon = info,
+    icon = com.github.devlotfi.cipherbox.shared.icons.outlined.info,
     iconSelected = com.github.devlotfi.cipherbox.shared.icons.filled.info
   ),
   Settings(
     navKey = DashboardNavigationKeys.Settings,
     label = R.string.settings,
-    icon = settings,
+    icon = com.github.devlotfi.cipherbox.shared.icons.outlined.settings,
     iconSelected = com.github.devlotfi.cipherbox.shared.icons.filled.settings
   ),
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DashboardScreen(
   modifier: Modifier = Modifier

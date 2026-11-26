@@ -1,5 +1,6 @@
 package com.github.devlotfi.cipherbox.client.services
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -17,12 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.github.devlotfi.cipherbox.client.R
 import com.github.devlotfi.cipherbox.shared.crypto.SHAUtils
 import com.github.devlotfi.cipherbox.shared.global.JsonInstances
 import com.github.devlotfi.cipherbox.shared.transport.packet.InboundGatewayPacket
 import com.github.devlotfi.cipherbox.shared.transport.packet.OutboundGatewayPacket
 import java.util.concurrent.Executors
-import com.github.devlotfi.cipherbox.shared.R as SharedR
 
 /**
  * Owns the foreground notification, the command queue and the busy state.
@@ -99,6 +100,7 @@ class ClientForegroundService : Service() {
             // Always shut the service down, even if stopping threw
             mainHandler.post {
               stopForeground(STOP_FOREGROUND_REMOVE)
+              isForegroundServiceActive = false
               stopSelf()
             }
           }
@@ -135,7 +137,7 @@ class ClientForegroundService : Service() {
     val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
       .setContentTitle("Client running")
       .setContentText("USB serial connection active")
-      .setSmallIcon(SharedR.drawable.cipher_box_logo)
+      .setSmallIcon(R.drawable.cipher_box_logo)
       .setOngoing(true)
       .build()
 
@@ -154,6 +156,8 @@ class ClientForegroundService : Service() {
         0
       )
     }
+
+    isForegroundServiceActive = true
   }
 
   private fun createNotificationChannel() {
@@ -167,6 +171,7 @@ class ClientForegroundService : Service() {
 
   override fun onDestroy() {
     usbInstance = null
+    isForegroundServiceActive = false
     isUsbConnected = false
     usbStatus = "Disconnected"
     commands.execute {
@@ -185,6 +190,7 @@ class ClientForegroundService : Service() {
     private const val NOTIFICATION_ID = 2
 
     // The running service's USB manager, so the UI can send without holding the service
+    @SuppressLint("StaticFieldLeak")
     @Volatile
     private var usbInstance: ClientUsbSerial? = null
 
@@ -201,6 +207,9 @@ class ClientForegroundService : Service() {
       private set
 
     var usbStatus by mutableStateOf("Disconnected")
+      private set
+
+    var isForegroundServiceActive by mutableStateOf(false)
       private set
   }
 

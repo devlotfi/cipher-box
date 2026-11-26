@@ -229,6 +229,7 @@ class GatewayForegroundService : Service() {
           } finally {
             mainHandler.post {
               stopForeground(STOP_FOREGROUND_REMOVE)
+              isForegroundServiceActive = false
               stopSelf()
             }
           }
@@ -284,6 +285,8 @@ class GatewayForegroundService : Service() {
         0
       )
     }
+
+    isForegroundServiceActive = true
   }
 
   private fun createNotificationChannel() {
@@ -298,9 +301,12 @@ class GatewayForegroundService : Service() {
   override fun onDestroy() {
     serviceScope.cancel()
 
+    isForegroundServiceActive = false
     isTorReady = false
     isServerRunning = false
     isBluetoothConnected = false
+    isMqttConnected = false
+    onionAddress = null
 
     commands.execute {
       tor.stop()
@@ -324,8 +330,6 @@ class GatewayForegroundService : Service() {
   enum class Extra {
     ONION_KEY,
     TOR_RC,
-    SERVER_PORT,
-    GATEWAY_KEY_HASH,
     BLUETOOTH_MAC,
     MQTT_HOST,
     MQTT_PORT,
@@ -369,6 +373,9 @@ class GatewayForegroundService : Service() {
       private set
 
     var currentOnionKey by mutableStateOf<String?>(null)
+      private set
+
+    var isForegroundServiceActive by mutableStateOf(false)
       private set
 
     fun putIntentExtras(intent: Intent, intentExtras: IntentExtras) {

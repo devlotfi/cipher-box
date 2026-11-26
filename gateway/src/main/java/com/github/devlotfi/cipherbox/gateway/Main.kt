@@ -1,6 +1,5 @@
 package com.github.devlotfi.cipherbox.gateway
 
-import android.content.pm.ApplicationInfo
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -99,15 +98,13 @@ fun Main(modifier: Modifier = Modifier) {
               },
               devInit = {
                 val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
-                if (exists && (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                  localLoginDb.loginDbManager.init(context)
-                  localSqlCipherDb.sqlCipherDbManager.init(
-                    context,
-                    "test"
-                  )
-                  backStack.clear()
-                  backStack.add(ScreenNavigationKeys.Dashboard)
-                }
+                localLoginDb.loginDbManager.init(context)
+                localSqlCipherDb.sqlCipherDbManager.init(
+                  context,
+                  "test"
+                )
+                backStack.clear()
+                backStack.add(ScreenNavigationKeys.Dashboard)
               }
             )
           }

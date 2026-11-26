@@ -12,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,7 +45,6 @@ fun InfoScreen(
   modifier: Modifier = Modifier,
   viewModel: InfoScreenViewModel = viewModel()
 ) {
-  val context = LocalContext.current
   val scrollState = rememberScrollState()
   val localSqlCipherDb = LocalSqlCipherDb.current
 

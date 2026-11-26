@@ -1,5 +1,5 @@
 [versions]
-agp = "9.5.2"
+agp = "9.5.3"
 bcprovJdk18on = "1.87"
 biometric = "1.1.0"
 composeForm = "1.0.4"
@@ -7,6 +7,7 @@ composeQuery = "1.0.9"
 composeVstore = "1.0.1"
 coreKtx = "1.19.1"
 coreSplashscreen = "1.2.0"
+fragmentKtx = "1.9.1"
 graphicsShapes = "1.1.0"
 hivemqMqttClient = "1.4.2"
 hivemqMqttClientProxy = "1.4.2"
@@ -40,6 +41,7 @@ usbSerialForAndroid = "3.12.0"
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
 androidx-graphics-shapes = { module = "androidx.graphics:graphics-shapes", version.ref = "graphicsShapes" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
