@@ -1,5 +1,6 @@
 package com.github.devlotfi.cipherbox.gateway
 
+import android.content.pm.ApplicationInfo
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -25,14 +26,15 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.github.devlotfi.cipherbox.gateway.data.settings.SettingsEntity
 import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
-import com.github.devlotfi.cipherbox.gateway.screens.InitScreen
 import com.github.devlotfi.cipherbox.gateway.screens.WelcomeScreen
 import com.github.devlotfi.cipherbox.gateway.screens.dashboard.DashboardScreen
 import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
+import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.cipherbox.shared.screens.DeviceNotSecureScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.CalculatorCamouflageScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.ConfirmDuressPinScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.ConfirmPinScreen
+import com.github.devlotfi.cipherbox.shared.screens.login.InitScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.PinScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.SetDuressPinScreen
 import com.github.devlotfi.cipherbox.shared.screens.login.SetPinScreen
@@ -40,9 +42,6 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 sealed interface ScreenNavigationKeys {
-  @Serializable
-  data object Init : NavKey
-
   @Serializable
   data object Welcome : NavKey
 
@@ -62,7 +61,8 @@ fun Main(modifier: Modifier = Modifier) {
   val context = LocalContext.current
   val focusManager = LocalFocusManager.current
   val localSqlCipherDb = LocalSqlCipherDb.current
-  val backStack = rememberNavBackStack(ScreenNavigationKeys.Init)
+  val localLoginDb = LocalLoginDb.current
+  val backStack = rememberNavBackStack(LoginNavigationKeys.Init)
 
   Column(
     modifier = modifier
@@ -88,9 +88,27 @@ fun Main(modifier: Modifier = Modifier) {
           rememberViewModelStoreNavEntryDecorator()
         ),
         entryProvider = entryProvider {
-          entry<ScreenNavigationKeys.Init> {
+          entry<LoginNavigationKeys.Init> {
             InitScreen(
-              backStack = backStack
+              backStack = backStack,
+              toWelcome = {
+                backStack.add(ScreenNavigationKeys.Welcome)
+              },
+              sqlCipherDbExists = {
+                localSqlCipherDb.sqlCipherDbManager.exists(context)
+              },
+              devInit = {
+                val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
+                if (exists && (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                  localLoginDb.loginDbManager.init(context)
+                  localSqlCipherDb.sqlCipherDbManager.init(
+                    context,
+                    "test"
+                  )
+                  backStack.clear()
+                  backStack.add(ScreenNavigationKeys.Dashboard)
+                }
+              }
             )
           }
 

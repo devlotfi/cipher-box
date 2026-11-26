@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">Cipher Box Gateway</string>
+  <string name="app_name">CB Gateway</string>
   <string name="no_content">No content</string>
   <string name="info">Info</string>
   <string name="dashboard">Dashboard</string>

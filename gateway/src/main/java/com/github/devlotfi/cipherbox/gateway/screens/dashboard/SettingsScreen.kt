@@ -35,11 +35,11 @@ import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.composables.SectionTitle
 import com.github.devlotfi.cipherbox.shared.composables.ValidatedOutlinedSecureTextField
 import com.github.devlotfi.cipherbox.shared.composables.ValidatedOutlinedTextField
+import com.github.devlotfi.cipherbox.shared.global.AppQueryCache
 import com.github.devlotfi.cipherbox.shared.global.KanyonFormDefinition
 import com.github.devlotfi.cipherbox.shared.global.RegexPresets
 import com.github.devlotfi.cipherbox.shared.provider.LocalSnackbar
 import com.github.devlotfi.cipherbox.shared.utils.RoomFlowData
-import com.github.devlotfi.composequery.QueryCache
 import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberMutation
 import com.github.devlotfi.composevstore.DataStore
@@ -49,8 +49,7 @@ import kotlinx.coroutines.launch
 
 class SettingsScreenViewModel : ViewModel() {
   val dataStore = DataStore()
-  val queryCache = QueryCache()
-  val queryClient = QueryClient(viewModelScope, queryCache)
+  val queryClient = QueryClient(viewModelScope, AppQueryCache.queryCache)
 }
 
 class SettingsForm(settingsEntity: SettingsEntity) : KanyonFormDefinition() {

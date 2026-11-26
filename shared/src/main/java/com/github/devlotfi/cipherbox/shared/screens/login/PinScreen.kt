@@ -24,12 +24,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.github.devlotfi.cipherbox.shared.crypto.AESGCMUtils
+import com.github.devlotfi.cipherbox.shared.global.AppQueryCache
 import com.github.devlotfi.cipherbox.shared.global.KeyStoreKeyAliases
 import com.github.devlotfi.cipherbox.shared.provider.LocalLoginDb
 import com.github.devlotfi.cipherbox.shared.screens.GenericPinScreen
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreAuthenticator
 import com.github.devlotfi.cipherbox.shared.utils.KeyStoreManager
-import com.github.devlotfi.composequery.QueryCache
 import com.github.devlotfi.composequery.QueryClient
 import com.github.devlotfi.composequery.rememberMutation
 import com.github.devlotfi.composevstore.DataStore
@@ -41,8 +41,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class PinScreenViewModel : ViewModel() {
   val dataStore = DataStore()
-  val queryCache = QueryCache()
-  val queryClient = QueryClient(viewModelScope, queryCache)
+  val queryClient = QueryClient(viewModelScope, AppQueryCache.queryCache)
   var error by mutableStateOf<String?>(null)
 }
 

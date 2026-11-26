@@ -1,4 +1,4 @@
-package com.github.devlotfi.cipherbox.gateway.screens
+package com.github.devlotfi.cipherbox.shared.screens.login
 
 import android.app.KeyguardManager
 import android.content.Context
@@ -14,9 +14,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import com.github.devlotfi.cipherbox.gateway.LocalNavigation
-import com.github.devlotfi.cipherbox.gateway.ScreenNavigationKeys
-import com.github.devlotfi.cipherbox.gateway.providers.LocalSqlCipherDb
 import com.github.devlotfi.cipherbox.shared.composables.LoadingView
 import com.github.devlotfi.cipherbox.shared.global.AppQueryCache
 import com.github.devlotfi.cipherbox.shared.navigation.LoginNavigationKeys
@@ -34,12 +31,13 @@ class InitViewModel : ViewModel() {
 fun InitScreen(
   modifier: Modifier = Modifier,
   viewModel: InitViewModel = viewModel(),
-  backStack: NavBackStack<NavKey>
+  backStack: NavBackStack<NavKey>,
+  sqlCipherDbExists: () -> Boolean,
+  devInit: suspend () -> Unit,
+  toWelcome: () -> Unit
 ) {
   val context = LocalContext.current
   val localLoginDb = LocalLoginDb.current
-  val localSqlCipherDb = LocalSqlCipherDb.current
-  val localNavigation = LocalNavigation.current
   val keyguardManager =
     context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
 
@@ -49,8 +47,11 @@ fun InitScreen(
       localLoginDb.loginDbManager.init(context)
       val loginDb = requireNotNull(localLoginDb.loginDbManager.db)
       val loginDataEntity = loginDb.loginDataDao().get()
-      val exists = localSqlCipherDb.sqlCipherDbManager.exists(context)
+      val exists = sqlCipherDbExists()
       val currentIcon = CamouflageManager.getCurrentIcon(context)
+
+      // for dev only
+      devInit()
 
       if (exists && loginDataEntity?.camouflagePin != null) {
         when (currentIcon) {
@@ -65,33 +66,19 @@ fun InitScreen(
 
       if (exists) {
         if (!keyguardManager.isDeviceSecure) {
-          localNavigation.backStack.add(LoginNavigationKeys.DeviceNotSecure)
+          backStack.add(LoginNavigationKeys.DeviceNotSecure)
           return@queryFn
         }
-        localNavigation.backStack.add(LoginNavigationKeys.Pin)
+        backStack.add(LoginNavigationKeys.Pin)
         return@queryFn
       } else {
         if (!keyguardManager.isDeviceSecure) {
-          localNavigation.backStack.add(LoginNavigationKeys.DeviceNotSecure)
+          backStack.add(LoginNavigationKeys.DeviceNotSecure)
           return@queryFn
         }
-        localNavigation.backStack.add(ScreenNavigationKeys.Welcome)
+        toWelcome()
         return@queryFn
       }
-
-
-      // for dev only
-//        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-//          localLoginDb.loginDbManager.init(context)
-//          localSqlCipherDb.sqlCipherDbManager.init(
-//            context,
-//            "test"
-//          )
-//          localNavigation.backStack.clear()
-//          localNavigation.backStack.add(ScreenNavigationKeys.Dashboard)
-//          return@queryFn
-//        }
-
     }
   }
 

@@ -5,6 +5,9 @@ import kotlinx.serialization.Serializable
 
 sealed interface LoginNavigationKeys {
   @Serializable
+  data object Init : NavKey
+
+  @Serializable
   data object Pin : NavKey
 
   @Serializable

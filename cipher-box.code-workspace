@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": ".",
+    },
+    {
+      "path": "isolation-relay",
+    },
+  ],
+  "settings": {
+    "idf.flashBaudRate": "921600",
+    "idf.monitorBaudRate": "921600",
+  },
+}
